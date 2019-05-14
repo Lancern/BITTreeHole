@@ -19,12 +19,42 @@ namespace BITTreeHole.Data.Contexts
         public virtual DbSet<UserEntity> Users { get; set; }
 
         /// <summary>
+        /// 获取或设置帖子板块数据集。
+        /// </summary>
+        public virtual DbSet<PostRegionEntity> PostRegions { get; set; }
+        
+        /// <summary>
+        /// 获取或设置帖子数据集。
+        /// </summary>
+        public virtual DbSet<PostEntity> Posts { get; set; }
+        
+        /// <summary>
+        /// 获取或设置承载用户关注帖子的多对多关系表。
+        /// </summary>
+        public virtual DbSet<UserWatchPostEntity> UserWatchPosts { get; set; }
+        
+        /// <summary>
+        /// 获取或设置承载用户点赞帖子的多对多关系表。
+        /// </summary>
+        public virtual DbSet<UserVotePostEntity> UserVotePosts { get; set; }
+        
+        /// <summary>
+        /// 获取或设置评论数据集。
+        /// </summary>
+        public virtual DbSet<CommentEntity> Comments { get; set; }
+
+        /// <summary>
         /// 当创建实体对象模型时被调用。
         /// </summary>
         /// <param name="modelBuilder">实体对象模型构建器。</param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             UserEntity.Configure(modelBuilder.Entity<UserEntity>());
+            PostRegionEntity.Configure(modelBuilder.Entity<PostRegionEntity>());
+            PostEntity.Configure(modelBuilder.Entity<PostEntity>());
+            UserWatchPostEntity.Configure(modelBuilder.Entity<UserWatchPostEntity>());
+            UserVotePostEntity.Configure(modelBuilder.Entity<UserVotePostEntity>());
+            CommentEntity.Configure(modelBuilder.Entity<CommentEntity>());
         }
     }
 

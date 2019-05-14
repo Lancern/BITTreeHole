@@ -23,9 +23,24 @@ namespace BITTreeHole.Data
         {
             _mysqlDbContext = mysqlDbContext ?? throw new ArgumentNullException(nameof(mysqlDbContext));
         }
-        
+
         /// <inheritdoc />
-        public IQueryable<UserEntity> Users { get; }
+        public IQueryable<UserEntity> Users => _mysqlDbContext.Users;
+
+        /// <inheritdoc />
+        public IQueryable<PostRegionEntity> PostRegions => _mysqlDbContext.PostRegions;
+
+        /// <inheritdoc />
+        public IQueryable<PostEntity> Posts => _mysqlDbContext.Posts;
+
+        /// <inheritdoc />
+        public IQueryable<CommentEntity> Comments => _mysqlDbContext.Comments;
+
+        /// <inheritdoc />
+        public IQueryable<UserVotePostEntity> UserVotePosts => _mysqlDbContext.UserVotePosts;
+
+        /// <inheritdoc />
+        public IQueryable<UserWatchPostEntity> UserWatchPosts => _mysqlDbContext.UserWatchPosts;
 
         /// <inheritdoc />
         public void AddUser(UserEntity user)

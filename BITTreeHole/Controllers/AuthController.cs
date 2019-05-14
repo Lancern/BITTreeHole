@@ -56,7 +56,7 @@ namespace BITTreeHole.Controllers
             var authToken = new AuthenticationToken(userEntity.Id);
             var authTokenJwt = _jwt.Encode(authToken);
 
-            return AuthenticationResult.Success(userEntity.IsFresh, authTokenJwt);
+            return AuthenticationResult.Success(authTokenJwt);
         }
     }
 }

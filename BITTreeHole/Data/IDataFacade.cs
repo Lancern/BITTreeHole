@@ -16,6 +16,31 @@ namespace BITTreeHole.Data
         /// 获取用户数据集。
         /// </summary>
         IQueryable<UserEntity> Users { get; }
+        
+        /// <summary>
+        /// 获取帖子板块数据集。
+        /// </summary>
+        IQueryable<PostRegionEntity> PostRegions { get; }
+        
+        /// <summary>
+        /// 获取帖子数据集。
+        /// </summary>
+        IQueryable<PostEntity> Posts { get; }
+        
+        /// <summary>
+        /// 获取评论数据集。
+        /// </summary>
+        IQueryable<CommentEntity> Comments { get; }
+        
+        /// <summary>
+        /// 获取用户点赞数据集。
+        /// </summary>
+        IQueryable<UserVotePostEntity> UserVotePosts { get; }
+        
+        /// <summary>
+        /// 获取用户关注数据集。
+        /// </summary>
+        IQueryable<UserWatchPostEntity> UserWatchPosts { get; }
 
         /// <summary>
         /// 添加用户实体对象到数据集中。
