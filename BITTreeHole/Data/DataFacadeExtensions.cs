@@ -11,6 +11,17 @@ namespace BITTreeHole.Data
     /// </summary>
     public static class DataFacadeExtensions
     {
+        /// <summary>
+        /// 当给定的用户不存在时，向数据源添加用户。返回用户实体对象。
+        /// </summary>
+        /// <param name="dataFacade">数据源外观。</param>
+        /// <param name="wechatId">用户的微信 ID。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="dataFacade"/> 为 null
+        ///     或
+        ///     <paramref name="wechatId"/> 为 null
+        /// </exception>
         public static async Task<UserEntity> AddOrFindUserByWechatId(this IDataFacade dataFacade, string wechatId)
         {
             if (dataFacade == null)

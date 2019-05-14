@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using BITTreeHole.Data;
+using BITTreeHole.Data.Entities;
 using BITTreeHole.Models;
 using BITTreeHole.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -33,30 +34,34 @@ namespace BITTreeHole.Controllers
         [HttpPost]
         public async Task<ActionResult<AuthenticationResult>> Post([FromBody] LoginInfo loginInfo)
         {
-            // 验证给定的微信访问代码是否有效。
-            var validWechatData = false;
+            WechatToken wechatToken;
             try
             {
-                validWechatData =
-                    await _wechatApi.CheckAccessCodeValidity(loginInfo.WechatId, loginInfo.WechatAccessCode);
+                wechatToken = await _wechatApi.GetWechatToken(loginInfo.WechatCode);
+            }
+            catch (WechatApiException ex)
+            {
+                return AuthenticationResult.Failure("无效的 Wechat code");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "检查微信访问代码有效性时捕获到异常：{0}: {1}", ex.GetType(), ex.Message);
-            }
-
-            if (!validWechatData)
-            {
+                _logger.LogError(ex, "通过微信 API 获取 access_code 时发生异常：{0}：{1}", ex.GetType(), ex.Message);
                 return AuthenticationResult.Failure();
             }
-            
-            // 客户端持有有效的微信访问代码。
-            // 从数据层拿用户实体对象，创建用户身份标识并编码为 JWT ，最后通过模型层返回
-            var userEntity = await _dataFacade.AddOrFindUserByWechatId(loginInfo.WechatId);
-            var authToken = new AuthenticationToken(userEntity.Id);
-            var authTokenJwt = _jwt.Encode(authToken);
 
-            return AuthenticationResult.Success(authTokenJwt);
+            UserEntity userEntity;
+            try
+            {
+                userEntity = await _dataFacade.AddOrFindUserByWechatId(wechatToken.OpenId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+            
+            var token = new AuthenticationToken(userEntity.Id, wechatToken);
+            return AuthenticationResult.Success(_jwt.Encode(token));
         }
     }
 }

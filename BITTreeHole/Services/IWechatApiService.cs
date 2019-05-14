@@ -1,7 +1,9 @@
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using BITTreeHole.Services.Implementations;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace BITTreeHole.Services
 {
@@ -11,17 +13,13 @@ namespace BITTreeHole.Services
     public interface IWechatApiService
     {
         /// <summary>
-        /// 检查给定的微信授权访问代码（access_code）是否有效。
+        /// 使用指定的微信授权码获取微信访问代码（access_code）。
         /// </summary>
-        /// <param name="wechatId">微信授权用户ID。</param>
-        /// <param name="wechatAccessCode">微信授权访问代码（access_code）。</param>
-        /// <returns>给定的微信授权访问代码是否有效。</returns>
-        /// <exception cref="ArgumentNullException">
-        ///     <paramref name="wechatId"/>为null
-        ///     或
-        ///     <paramref name="wechatAccessCode"/>为null
-        /// </exception>
-        Task<bool> CheckAccessCodeValidity(string wechatId, string wechatAccessCode);
+        /// <param name="wechatCode">用于获取 access_code 的微信授权码。</param>
+        /// <returns>微信访问代码包装</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="WechatApiException"></exception>
+        Task<WechatToken> GetWechatToken(string wechatCode);
     }
     
     namespace DependencyInjection
@@ -36,13 +34,27 @@ namespace BITTreeHole.Services
             /// </summary>
             /// <param name="services">依赖服务集。</param>
             /// <returns></returns>
-            /// <exception cref="ArgumentNullException">services为null。</exception>
-            public static IServiceCollection AddDefaultWechatApiService(this IServiceCollection services)
+            /// <exception cref="ArgumentNullException">services 为 null。</exception>
+            /// <exception cref="InvalidOperationException">用于访问微信 API 的 AppID 或 AppSecret 未配置。</exception>
+            public static IServiceCollection AddDefaultWechatApiService(this IServiceCollection services,
+                                                                        Action<WechatApiServiceOptions> options)
             {
                 if (services == null)
                     throw new ArgumentNullException(nameof(services));
+                if (options == null)
+                    throw new ArgumentNullException(nameof(options));
+                
+                var optionObject = new WechatApiServiceOptions();
+                options(optionObject);
 
-                return services.AddSingleton<IWechatApiService, DefaultWechatApiService>();
+                if (optionObject.AppId == null || optionObject.AppSecret == null)
+                    throw new InvalidOperationException("用于访问微信 API 的 AppID 或 AppSecret 未配置。");
+
+                return services.AddSingleton<IWechatApiService, DefaultWechatApiService>(
+                    serviceProvider => new DefaultWechatApiService(
+                        optionObject,
+                        serviceProvider.GetService<IHttpClientFactory>(),
+                        serviceProvider.GetService<ILogger<DefaultWechatApiService>>()));
             }
         }
     }

@@ -1,3 +1,4 @@
+using BITTreeHole.Services;
 using Newtonsoft.Json;
 
 namespace BITTreeHole.Models
@@ -14,21 +15,30 @@ namespace BITTreeHole.Models
         public AuthenticationToken()
         {
             UserId = 0;
+            WechatToken = null;
         }
         
         /// <summary>
         /// 初始化 <see cref="AuthenticationToken"/> 类的新实例。
         /// </summary>
         /// <param name="userId">用户ID。</param>
-        public AuthenticationToken(int userId)
+        /// <param name="wechatToken">用于与微信 API 交互的 Token。</param>
+        public AuthenticationToken(int userId, WechatToken wechatToken)
         {
             UserId = userId;
+            WechatToken = wechatToken;
         }
         
         /// <summary>
-        /// 用户 ID。
+        /// 获取用户 ID。
         /// </summary>
         [JsonProperty("userId")]
         public int UserId { get; private set; }
+        
+        /// <summary>
+        /// 获取用于与微信 API 交互的 Token。
+        /// </summary>
+        [JsonProperty("wechatToken")]
+        public WechatToken WechatToken { get; private set; }
     }
 }

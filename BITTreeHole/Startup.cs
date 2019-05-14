@@ -1,5 +1,6 @@
 ﻿using System;
 using BITTreeHole.Data.DependencyInjection;
+using BITTreeHole.Services;
 using BITTreeHole.Services.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -29,7 +30,22 @@ namespace BITTreeHole
 
         private void ConfigureApplicationServices(IServiceCollection services)
         {
-            services.AddDefaultWechatApiService();
+            // 加载微信 API 相关配置
+            var wechatAppId = Configuration.GetSection("Wechat")
+                                           .GetValue<string>("AppId", null);
+            var wechatAppSecret = Configuration.GetSection("Wechat")
+                                               .GetValue<string>("AppSecret", null);
+            if (wechatAppId == null || wechatAppSecret == null)
+            {
+                Logger.LogCritical("未配置访问微信 API 所需的 AppId 以及 AppSecret。");
+                throw new Exception("未配置访问微信 API 所需的 AppId 以及 AppSecret。");
+            }
+            
+            services.AddDefaultWechatApiService(options =>
+            {
+                options.AppId = wechatAppId;
+                options.AppSecret = wechatAppSecret;
+            });
             
             // 加载 JWT 相关配置
             var jwtCertFileName = Configuration.GetSection("JWT")
@@ -43,11 +59,11 @@ namespace BITTreeHole
                 else
                 {
                     Logger.LogCritical("未配置JWT服务的加密方式。");
-                    
-                    // 抛出异常以强制使应用程序非正常退出。
                     throw new Exception("未配置JWT服务的加密方式。");
                 }
             }
+
+            services.AddJoseJwtService(options => options.UseRSA256(jwtCertFileName));
 
             services.AddDefaultDataFacade(
                 Configuration.GetConnectionString("mysql"),

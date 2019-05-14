@@ -13,16 +13,20 @@ namespace BITTreeHole.Services.Implementations
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<DefaultWechatApiService> _logger;
+        private readonly WechatApiServiceOptions _options;
 
         /// <summary>
         /// 初始化 <see cref="DefaultWechatApiService"/> 类的新实例。
         /// </summary>
+        /// <param name="options">服务配置对象。</param>
         /// <param name="httpClientFactory">HTTP客户端工厂对象。</param>
         /// <param name="logger"></param>
         /// <exception cref="ArgumentNullException"><paramref name="httpClientFactory"/>为null。</exception>
-        public DefaultWechatApiService(IHttpClientFactory httpClientFactory,
+        public DefaultWechatApiService(WechatApiServiceOptions options, 
+                                       IHttpClientFactory httpClientFactory,
                                        ILogger<DefaultWechatApiService> logger)
         {
+            _options = options ?? throw new ArgumentNullException(nameof(options));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -39,37 +43,55 @@ namespace BITTreeHole.Services.Implementations
                 return await httpClient.GetAsync(url);
             }
         }
-        
+
         /// <inheritdoc />
-        public async Task<bool> CheckAccessCodeValidity(string wechatId, string wechatAccessCode)
+        public async Task<WechatToken> GetWechatToken(string wechatCode)
         {
-            if (wechatId == null)
-                throw new ArgumentNullException(nameof(wechatId));
-            if (wechatAccessCode == null)
-                throw new ArgumentNullException(nameof(wechatAccessCode));
+            if (wechatCode == null)
+                throw new ArgumentNullException(nameof(wechatCode));
 
-            // 构建接口URL。
-            var url = string.Format("https://api.weixin.qq.com/sns/auth?openid={0}&access_token={1}",
-                                    wechatId, wechatAccessCode);
+            var url = string.Format(
+                "https://api.weixin.qq.com/sns/oauth2/access_token?appid={0}&secret={1}&code={2}&grant_type={3}",
+                _options.AppId, _options.AppSecret, wechatCode, "authorization_code");
 
-            // 发送请求并接收响应
-            var response = await GetApiResponse(url);
+            HttpResponseMessage response;
+            try
+            {
+                response = await GetApiResponse(url);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "尝试访问微信 API 时发生异常：{0}: {1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("微信接口 /sns/auth 返回异常的HTTP状态码：{0}", response.StatusCode);
-                return false;
+                _logger.LogError("微信 API 返回非 2XX 的 HTTP 状态码：{0}", response.StatusCode);
+                // TODO: 更改下面的异常类型
+                throw new Exception($"微信 API 返回了非 2XX 的 HTTP 状态码：{response.StatusCode}");
             }
-            
-            // 检查微信API响应内容
-            var responseBody = await response.Content.ReadAsStringAsync();
-            var responseBodyStructured = JObject.Parse(responseBody);
 
-            if (!responseBodyStructured.TryGetValue("errcode", out var errorCodeField))
+            string responseBody;
+            try
             {
-                return false;
+                responseBody = await response.Content.ReadAsStringAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "尝试读取微信 API 响应时发生异常：{0}: {1}", ex.GetType(), ex.Message);
+                throw;
             }
 
-            return errorCodeField.Type == JTokenType.Integer && errorCodeField.Value<int>() == 0;
+            var responseJson = JObject.Parse(responseBody);
+            var errorCode = responseJson["errcode"]?.Value<int>();
+            if (errorCode != null && errorCode != 0)
+            {
+                var errorMessage = (string) responseJson["errmsg"];
+                throw new WechatApiException(errorCode.Value, errorMessage);
+            }
+
+            return WechatToken.FromWechatJson(responseJson);
         }
     }
 }
