@@ -37,15 +37,25 @@ namespace BITTreeHole
                                                .GetValue<string>("AppSecret", null);
             if (wechatAppId == null || wechatAppSecret == null)
             {
-                Logger.LogCritical("未配置访问微信 API 所需的 AppId 以及 AppSecret。");
-                throw new Exception("未配置访问微信 API 所需的 AppId 以及 AppSecret。");
+                if (HostingEnvironment.IsDevelopment())
+                {
+                    Logger.LogWarning("未配置访问微信 API 所需的 AppId 以及 AppSecret。服务将降级为基于 mock 数据的实现。");
+                    services.AddMockWechatApiService();
+                }
+                else
+                {
+                    Logger.LogCritical("未配置访问微信 API 所需的 AppId 以及 AppSecret。");
+                    throw new Exception("未配置访问微信 API 所需的 AppId 以及 AppSecret。");
+                }
             }
-            
-            services.AddDefaultWechatApiService(options =>
+            else
             {
-                options.AppId = wechatAppId;
-                options.AppSecret = wechatAppSecret;
-            });
+                services.AddDefaultWechatApiService(options =>
+                {
+                    options.AppId = wechatAppId;
+                    options.AppSecret = wechatAppSecret;
+                });
+            }
             
             // 加载 JWT 相关配置
             var jwtCertFileName = Configuration.GetSection("JWT")

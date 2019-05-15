@@ -34,7 +34,11 @@ namespace BITTreeHole.Services
             /// </summary>
             /// <param name="services">依赖服务集。</param>
             /// <returns></returns>
-            /// <exception cref="ArgumentNullException">services 为 null。</exception>
+            /// <exception cref="ArgumentNullException">
+            ///     <paramref name="services"/>为null
+            ///     或
+            ///     <paramref name="options"/>为null
+            /// </exception>
             /// <exception cref="InvalidOperationException">用于访问微信 API 的 AppID 或 AppSecret 未配置。</exception>
             public static IServiceCollection AddDefaultWechatApiService(this IServiceCollection services,
                                                                         Action<WechatApiServiceOptions> options)
@@ -55,6 +59,20 @@ namespace BITTreeHole.Services
                         optionObject,
                         serviceProvider.GetService<IHttpClientFactory>(),
                         serviceProvider.GetService<ILogger<DefaultWechatApiService>>()));
+            }
+
+            /// <summary>
+            /// 将 <see cref="IWechatApiService"/> 依赖项的基于 mock 数据的实现注入到给定的依赖服务集中。
+            /// </summary>
+            /// <param name="services">依赖服务集。</param>
+            /// <returns></returns>
+            /// <exception cref="ArgumentNullException"><paramref name="services"/>为null</exception>
+            public static IServiceCollection AddMockWechatApiService(this IServiceCollection services)
+            {
+                if (services == null)
+                    throw new ArgumentNullException(nameof(services));
+
+                return services.AddSingleton<IWechatApiService, MockWechatApiService>();
             }
         }
     }
