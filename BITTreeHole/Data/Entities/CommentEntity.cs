@@ -77,8 +77,14 @@ namespace BITTreeHole.Data.Entities
             builder.HasIndex(entity => entity.PostId);
             builder.HasIndex(entity => entity.CommentId);
 
-            // 配置 IsRemoved 字段上的索引
+            // 配置 IsRemovedInternal 字段上的索引
             builder.HasIndex(entity => entity.IsRemoved);
+            
+            // 由于 MySQL 没有 BOOLEAN 类型，因此需要使用 Int32 作为存储类型
+            builder.Property(entity => entity.IsRemoved)
+                   .HasConversion<int>(
+                       repr => repr ? 1 : 0,
+                       storage => storage != 0);
         }
     }
 }

@@ -111,6 +111,7 @@ namespace BITTreeHole.Data
 
                 services.AddMysqlDbContext(mysqlConnectionString);
                 services.AddMongoDbContext(mongoConnectionString);
+                services.AddScoped<IDataFacade, DefaultDataFacade>();
 
                 return services;
             }

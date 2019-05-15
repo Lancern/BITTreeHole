@@ -13,15 +13,26 @@ namespace BITTreeHole.Data
     internal sealed class DefaultDataFacade : IDataFacade
     {
         private readonly MysqlDbContext _mysqlDbContext;
+        private readonly MongoDbContext _mongoDbContext;
 
         /// <summary>
         /// 初始化 <see cref="DefaultDataFacade"/> 类的新实例。
+        /// <see cref="DefaultDataFacade"/> 类的初始化将会创建 MySQL 数据库结构。
         /// </summary>
         /// <param name="mysqlDbContext">MySQL数据上下文。</param>
-        /// <exception cref="ArgumentNullException"><paramref name="mysqlDbContext"/>为null。</exception>
-        public DefaultDataFacade(MysqlDbContext mysqlDbContext)
+        /// <param name="mongoDbContext">MongoDB数据上下文。</param>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="mysqlDbContext"/>为null
+        ///     或
+        ///     <paramref name="mongoDbContext"/>为null
+        /// </exception>
+        public DefaultDataFacade(MysqlDbContext mysqlDbContext, MongoDbContext mongoDbContext)
         {
             _mysqlDbContext = mysqlDbContext ?? throw new ArgumentNullException(nameof(mysqlDbContext));
+            _mongoDbContext = mongoDbContext ?? throw new ArgumentNullException(nameof(mongoDbContext));
+
+            // TODO: 尝试重构下面的代码以分离数据库创建检查逻辑
+            _mysqlDbContext.Database.EnsureCreated();
         }
 
         /// <inheritdoc />

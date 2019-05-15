@@ -14,6 +14,14 @@ namespace BITTreeHole.Data.Contexts
     public class MysqlDbContext : DbContext
     {
         /// <summary>
+        /// 初始化 <see cref="MysqlDbContext"/> 类的新实例。
+        /// </summary>
+        /// <param name="options">数据库上下文选项。</param>
+        public MysqlDbContext(DbContextOptions options)
+            : base(options)
+        { }
+        
+        /// <summary>
         /// 获取或设置用户数据集。
         /// </summary>
         public virtual DbSet<UserEntity> Users { get; set; }
@@ -83,7 +91,9 @@ namespace BITTreeHole.Data.Contexts
                 if (connectionString == null)
                     throw new ArgumentNullException(nameof(connectionString));
 
-                return services.AddDbContext<MysqlDbContext>(options => options.UseMySQL(connectionString));
+                return services.AddDbContext<MysqlDbContext>(
+                    options => options.UseLazyLoadingProxies()
+                                      .UseMySQL(connectionString));
             }
         }
     }

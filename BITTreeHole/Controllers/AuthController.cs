@@ -39,7 +39,7 @@ namespace BITTreeHole.Controllers
             {
                 wechatToken = await _wechatApi.GetWechatToken(loginInfo.WechatCode);
             }
-            catch (WechatApiException ex)
+            catch (WechatApiException)
             {
                 return AuthenticationResult.Failure("无效的 Wechat code");
             }

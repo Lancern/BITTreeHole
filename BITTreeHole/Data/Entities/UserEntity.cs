@@ -22,7 +22,7 @@ namespace BITTreeHole.Data.Entities
         /// 获取或设置用户是否为管理员。
         /// </summary>
         public bool IsAdmin { get; set; }
-        
+
         /// <summary>
         /// 导航属性，获取或设置用户发出的帖子集合。
         /// </summary>
@@ -58,8 +58,13 @@ namespace BITTreeHole.Data.Entities
                    .IsUnique();
             
             // 配置 IsAdmin 属性上的 unique 索引。
-            builder.HasIndex(entity => entity.IsAdmin)
-                   .IsUnique();
+            builder.HasIndex(entity => entity.IsAdmin);
+            
+            // 由于 MySQL 没有 BOOLEAN 类型，因此需要使用 Int32 类型作为存储类型
+            builder.Property(entity => entity.IsAdmin)
+                   .HasConversion(
+                       repr => repr ? 1 : 0,
+                       storage => storage != 0);
         }
     }
 }
