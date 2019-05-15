@@ -46,7 +46,7 @@ namespace BITTreeHole.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "通过微信 API 获取 access_code 时发生异常：{0}：{1}", ex.GetType(), ex.Message);
-                return AuthenticationResult.Failure();
+                throw;
             }
 
             UserEntity userEntity;
@@ -56,7 +56,7 @@ namespace BITTreeHole.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "数据源抛出异常：{0}：{1}", ex.GetType(), ex.Message);
+                _logger.LogError(ex, "根据微信 ID 向数据源插入或查找用户数据时抛出异常：{0}：{1}", ex.GetType(), ex.Message);
                 throw;
             }
             

@@ -59,6 +59,22 @@ namespace BITTreeHole.Data
         }
 
         /// <inheritdoc />
+        public void AddPostRegion(PostRegionEntity postRegion)
+        {
+            if (postRegion == null)
+                throw new ArgumentNullException(nameof(postRegion));
+            _mysqlDbContext.PostRegions.Add(postRegion);
+        }
+
+        /// <inheritdoc />
+        public void RemovePostRegion(PostRegionEntity postRegion)
+        {
+            if (postRegion == null)
+                throw new ArgumentNullException(nameof(postRegion));
+            _mysqlDbContext.PostRegions.Remove(postRegion);
+        }
+
+        /// <inheritdoc />
         public async Task CommitChanges()
         {
             try

@@ -46,15 +46,29 @@ namespace BITTreeHole.Data
         /// 添加用户实体对象到数据集中。
         /// </summary>
         /// <param name="user">要添加的用户实体对象。</param>
-        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentNullException"><paramref name="user"/>为null</exception>
         void AddUser(UserEntity user);
 
         /// <summary>
         /// 将用户实体对象从数据集中删除。
         /// </summary>
         /// <param name="user">要移除的用户实体对象。</param>
-        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentNullException"><paramref name="user"/>为null</exception>
         void RemoveUser(UserEntity user);
+        
+        /// <summary>
+        /// 添加帖子板块。
+        /// </summary>
+        /// <param name="postRegion">帖子板块实体对象。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="postRegion"/>为null</exception>
+        void AddPostRegion(PostRegionEntity postRegion);
+
+        /// <summary>
+        /// 移除帖子模块。
+        /// </summary>
+        /// <param name="postRegion">帖子模块实体对象。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="postRegion"/>为null</exception>
+        void RemovePostRegion(PostRegionEntity postRegion);
 
         /// <summary>
         /// 将所有未提交的更改提交到数据源。
@@ -94,11 +108,9 @@ namespace BITTreeHole.Data
                     throw new ArgumentNullException(nameof(mysqlConnectionString));
                 if (mongoConnectionString == null)
                     throw new ArgumentNullException(nameof(mongoConnectionString));
-            
-                // mongoConnectionString 参数暂时未用
-                // TODO: 添加 MongoDB 依赖后更新此方法
 
                 services.AddMysqlDbContext(mysqlConnectionString);
+                services.AddMongoDbContext(mongoConnectionString);
 
                 return services;
             }

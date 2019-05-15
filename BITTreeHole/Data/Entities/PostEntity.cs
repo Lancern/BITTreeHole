@@ -19,6 +19,11 @@ namespace BITTreeHole.Data.Entities
         /// 获取或设置帖子的作者 ID。
         /// </summary>
         public int AuthorId { get; set; }
+        
+        /// <summary>
+        /// 获取或设置帖子所属板块的 ID。
+        /// </summary>
+        public int PostRegionId { get; set; }
 
         /// <summary>
         /// 获取或设置帖子的标题。
@@ -59,7 +64,12 @@ namespace BITTreeHole.Data.Entities
         /// 导航属性，获取或设置帖子的作者。
         /// </summary>
         public virtual UserEntity Author { get; set; }
-        
+
+        /// <summary>
+        /// 导航属性，获取或设置帖子的板块。
+        /// </summary>
+        public virtual PostRegionEntity PostRegion { get; set; }
+
         /// <summary>
         /// 导航属性，获取或设置帖子的关注者。
         /// </summary>
@@ -85,6 +95,12 @@ namespace BITTreeHole.Data.Entities
             builder.HasOne(entity => entity.Author)
                    .WithMany(entity => entity.UserPosts)
                    .HasForeignKey(entity => entity.AuthorId)
+                   .OnDelete(DeleteBehavior.Cascade);
+            
+            // 配置与帖子板块的一对多关系
+            builder.HasOne(entity => entity.PostRegion)
+                   .WithMany(entity => entity.Posts)
+                   .HasForeignKey(entity => entity.PostRegionId)
                    .OnDelete(DeleteBehavior.Cascade);
 
             // 配置在 IsRemoved 字段上的索引

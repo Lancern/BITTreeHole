@@ -35,7 +35,7 @@ namespace BITTreeHole
                                            .GetValue<string>("AppId", null);
             var wechatAppSecret = Configuration.GetSection("Wechat")
                                                .GetValue<string>("AppSecret", null);
-            if (wechatAppId == null || wechatAppSecret == null)
+            if (string.IsNullOrEmpty(wechatAppId) || string.IsNullOrEmpty(wechatAppSecret))
             {
                 if (HostingEnvironment.IsDevelopment())
                 {
@@ -60,11 +60,12 @@ namespace BITTreeHole
             // 加载 JWT 相关配置
             var jwtCertFileName = Configuration.GetSection("JWT")
                                                .GetValue<string>("CertFile", null);
-            if (jwtCertFileName == null)
+            if (string.IsNullOrEmpty(jwtCertFileName))
             {
                 if (HostingEnvironment.IsDevelopment())
                 {
                     Logger.LogWarning("未配置JWT服务的加密方式。JWT服务将降级到无加密方式。");
+                    services.AddJoseJwtService();
                 }
                 else
                 {
@@ -72,8 +73,10 @@ namespace BITTreeHole
                     throw new Exception("未配置JWT服务的加密方式。");
                 }
             }
-
-            services.AddJoseJwtService(options => options.UseRSA256(jwtCertFileName));
+            else
+            {
+                services.AddJoseJwtService(options => options.UseRSA256(jwtCertFileName));
+            }
 
             services.AddDefaultDataFacade(
                 Configuration.GetConnectionString("mysql"),

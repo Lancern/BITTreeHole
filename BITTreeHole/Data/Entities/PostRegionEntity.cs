@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace BITTreeHole.Data.Entities
@@ -16,6 +17,16 @@ namespace BITTreeHole.Data.Entities
         /// 获取或设置板块标题。
         /// </summary>
         public string Title { get; set; }
+        
+        /// <summary>
+        /// 获取或设置板块的图标数据。
+        /// </summary>
+        public byte[] IconData { get; set; }
+        
+        /// <summary>
+        /// 导航属性，获取或设置当前板块下拥有的帖子。
+        /// </summary>
+        public virtual ICollection<PostEntity> Posts { get; set; }
 
         /// <summary>
         /// 配置板块实体对象的数据库模型。
