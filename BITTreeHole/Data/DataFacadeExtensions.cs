@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BITTreeHole.Data.Entities;
+using BITTreeHole.Extensions;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
 
 namespace BITTreeHole.Data
 {
@@ -48,6 +51,51 @@ namespace BITTreeHole.Data
             return await dataFacade.Users
                                    .Where(u => u.WechatId == wechatId)
                                    .FirstOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// 查询帖子信息。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="region">帖子所属板块 ID。</param>
+        /// <param name="page">分页参数，页面编号。页面编号从 0 开始。</param>
+        /// <param name="itemsPerPage">分页参数，每一页上的帖子数量。</param>
+        /// <returns>帖子信息实体对象与帖子正文实体对象二元组集合</returns>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="dataFacade"/>为null
+        /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        ///     <paramref name="page"/>小于零
+        ///     或
+        ///     <paramref name="itemsPerPage"/>小于等于零
+        /// </exception>
+        public static async Task<IEnumerable<(PostEntity IndexEntity, PostContentEntity ContentEntity)>>
+            FindPosts(this IDataFacade dataFacade, int region, int page, int itemsPerPage)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+            if (page < 0)
+                throw new ArgumentOutOfRangeException(nameof(page));
+            if (itemsPerPage <= 0)
+                throw new ArgumentOutOfRangeException(nameof(itemsPerPage));
+            
+            var indexEntities = await dataFacade.Posts
+                                                .AsNoTracking()
+                                                // 下面的语句中务必使用 e.IsRemoved == false 以正确引导 EFCore 解析查询
+                                                .Where(e => e.PostRegionId == region && e.IsRemoved == false)
+                                                .OrderByDescending(e => e.UpdateTime)
+                                                .Paginate(page, itemsPerPage)
+                                                .ToListAsync();
+            var contentEntities =
+                await dataFacade.FindPostContentEntities(indexEntities.Select(e => new ObjectId(e.ContentId)));
+            var contentDict = contentEntities.ToDictionary(e => e.Id);
+
+            return indexEntities.Select(indexEntity =>
+            {
+                if (contentDict.TryGetValue(new ObjectId(indexEntity.ContentId), out var contentEntity))
+                    return (indexEntity, contentEntity);
+                return (indexEntity, null);
+            });
         }
     }
 }

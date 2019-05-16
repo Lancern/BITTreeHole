@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BITTreeHole.Data.Contexts;
 using BITTreeHole.Data.Entities;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using MySql.Data.MySqlClient;
 
 namespace BITTreeHole.Data
@@ -83,6 +86,24 @@ namespace BITTreeHole.Data
             if (postRegion == null)
                 throw new ArgumentNullException(nameof(postRegion));
             _mysqlDbContext.PostRegions.Remove(postRegion);
+        }
+
+        /// <inheritdoc />
+        public async Task<List<PostContentEntity>> FindPostContentEntities(IEnumerable<ObjectId> contentIds)
+        {
+            if (contentIds == null)
+                throw new ArgumentNullException(nameof(contentIds));
+
+            try
+            {
+                return await _mongoDbContext.PostContents
+                                            .Find(Builders<PostContentEntity>.Filter.In(e => e.Id, contentIds))
+                                            .ToListAsync();
+            }
+            catch (MongoException ex)
+            {
+                throw new DataFacadeException("MongoDB数据源抛出了未经处理的异常。", ex);
+            }
         }
 
         /// <inheritdoc />

@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BITTreeHole.Data.Contexts.DependencyInjection;
 using BITTreeHole.Data.Entities;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace BITTreeHole.Data
 {
@@ -69,6 +72,15 @@ namespace BITTreeHole.Data
         /// <param name="postRegion">帖子模块实体对象。</param>
         /// <exception cref="ArgumentNullException"><paramref name="postRegion"/>为null</exception>
         void RemovePostRegion(PostRegionEntity postRegion);
+
+        /// <summary>
+        /// 查询帖子正文实体对象。
+        /// </summary>
+        /// <param name="contentIds">需要查询的帖子正文实体对象的 ID。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"><paramref name="contentIds"/>为null</exception>
+        /// <exception cref="DataFacadeException">当数据源抛出了未经处理的异常时</exception>
+        Task<List<PostContentEntity>> FindPostContentEntities(IEnumerable<ObjectId> contentIds);
 
         /// <summary>
         /// 将所有未提交的更改提交到数据源。
