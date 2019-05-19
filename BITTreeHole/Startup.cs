@@ -13,6 +13,8 @@ namespace BITTreeHole
 {
     public class Startup
     {
+        private const string CorsPolicyName = "BITTreeHoleCors";
+    
         public Startup(ILogger<Startup> logger, 
                        IConfiguration configuration, 
                        IHostingEnvironment hostingEnvironment)
@@ -87,6 +89,17 @@ namespace BITTreeHole
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            
+            // 配置 CORS
+            services.AddCors(options =>
+            {
+                options.AddPolicy(CorsPolicyName, builder =>
+                {
+                    builder.AllowAnyOrigin()
+                           .AllowAnyHeader()
+                           .AllowAnyMethod();
+                });
+            });
 
             ConfigureApplicationServices(services);
         }
@@ -102,6 +115,9 @@ namespace BITTreeHole
             {
                 app.UseHsts();
             }
+
+            // 启用 CORS 处理
+            app.UseCors(CorsPolicyName);
 
             app.UseHttpsRedirection();
             app.UseMvc();
