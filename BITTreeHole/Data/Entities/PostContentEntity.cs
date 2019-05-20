@@ -23,5 +23,19 @@ namespace BITTreeHole.Data.Entities
         /// 获取或设置帖子所附带的图片 ID。
         /// </summary>
         public ObjectId[] ImageIds { get; set; }
+
+        /// <summary>
+        /// 创建新的 <see cref="PostContentEntity"/> 对象。该方法会自动为返回的对象创建 <see cref="ObjectId"/> 键。
+        /// </summary>
+        /// <returns>创建的 <see cref="PostContentEntity"/> 对象。</returns>
+        public static PostContentEntity Create()
+        {
+            return new PostContentEntity
+            {
+                Id = ObjectId.GenerateNewId(),
+                Text = string.Empty,
+                ImageIds = new ObjectId[0]
+            };
+        }
     }
 }

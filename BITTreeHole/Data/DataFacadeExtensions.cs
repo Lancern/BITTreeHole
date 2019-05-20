@@ -54,6 +54,41 @@ namespace BITTreeHole.Data
         }
 
         /// <summary>
+        /// 向数据源中添加帖子。
+        /// </summary>
+        /// <param name="dataFacade">数据源的外观。</param>
+        /// <param name="indexEntity">帖子索引实体对象。</param>
+        /// <param name="contentEntity">帖子内容对象。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="dataFacade"/>为null
+        ///     或
+        ///     <paramref name="indexEntity"/>为null
+        ///     或
+        ///     <paramref name="contentEntity"/>为null
+        /// </exception>
+        /// <exception cref="DataFacadeException">数据源抛出了未经处理的异常</exception>
+        public static async Task<int> AddPost(this IDataFacade dataFacade,
+                                              PostEntity indexEntity, PostContentEntity contentEntity)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+            if (indexEntity == null)
+                throw new ArgumentNullException(nameof(indexEntity));
+            if (contentEntity == null)
+                throw new ArgumentNullException(nameof(contentEntity));
+            
+            // 将内容实体对象插入到数据源中。
+            await dataFacade.AddPostContentEntity(contentEntity);
+            
+            // 将帖子索引实体对象插入到数据源中。
+            dataFacade.AddPostIndexEntity(indexEntity);
+            await dataFacade.CommitChanges();
+
+            return indexEntity.Id;
+        }
+
+        /// <summary>
         /// 查询帖子信息。
         /// </summary>
         /// <param name="dataFacade"></param>

@@ -6,7 +6,6 @@ using BITTreeHole.Data.Contexts.DependencyInjection;
 using BITTreeHole.Data.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace BITTreeHole.Data
 {
@@ -72,6 +71,22 @@ namespace BITTreeHole.Data
         /// <param name="postRegion">帖子模块实体对象。</param>
         /// <exception cref="ArgumentNullException"><paramref name="postRegion"/>为null</exception>
         void RemovePostRegion(PostRegionEntity postRegion);
+
+        /// <summary>
+        /// 添加帖子索引实体对象。
+        /// </summary>
+        /// <param name="postIndexEntity">要添加的帖子索引实体对象。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="postIndexEntity"/>为null</exception>
+        void AddPostIndexEntity(PostEntity postIndexEntity);
+
+        /// <summary>
+        /// 添加帖子内容实体对象。
+        /// </summary>
+        /// <param name="postContentEntity">要添加的帖子内容实体对象。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"><paramref name="postContentEntity"/>为null</exception>
+        /// <exception cref="DataFacadeException">当数据源发生异常时抛出</exception>
+        Task AddPostContentEntity(PostContentEntity postContentEntity);
 
         /// <summary>
         /// 查询帖子正文实体对象。

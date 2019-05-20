@@ -112,5 +112,35 @@ namespace BITTreeHole.Data.Entities
                        repr => repr ? 1 : 0,
                        storage => storage != 0);
         }
+
+        /// <summary>
+        /// 创建一个新的 <see cref="PostEntity"/> 实例。
+        /// </summary>
+        /// <param name="authorId">发帖用户 ID。</param>
+        /// <param name="postRegionId">帖子所属板块 ID。</param>
+        /// <param name="title">帖子标题。</param>
+        /// <param name="contentId">帖子内容 ID。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="title"/>为null
+        ///     或
+        ///     <paramref name="contentId"/>为null
+        /// </exception>
+        public static PostEntity Create(int authorId, int postRegionId, string title, byte[] contentId)
+        {
+            if (title == null)
+                throw new ArgumentNullException(nameof(title));
+            if (contentId == null)
+                throw new ArgumentNullException(nameof(contentId));
+
+            return new PostEntity
+            {
+                AuthorId = authorId,
+                PostRegionId = postRegionId,
+                CreationTime = DateTime.Now,
+                UpdateTime = DateTime.Now,
+                ContentId = contentId
+            };
+        }
     }
 }

@@ -89,6 +89,30 @@ namespace BITTreeHole.Data
         }
 
         /// <inheritdoc />
+        public void AddPostIndexEntity(PostEntity postIndexEntity)
+        {
+            if (postIndexEntity == null)
+                throw new ArgumentNullException(nameof(postIndexEntity));
+            _mysqlDbContext.Posts.Add(postIndexEntity);
+        }
+
+        /// <inheritdoc />
+        public async Task AddPostContentEntity(PostContentEntity postContentEntity)
+        {
+            if (postContentEntity == null)
+                throw new ArgumentNullException(nameof(postContentEntity));
+
+            try
+            {
+                await _mongoDbContext.PostContents.InsertOneAsync(postContentEntity);
+            }
+            catch (MongoException ex)
+            {
+                throw new DataFacadeException("向 MongoDB 中插入帖子正文实体对象时发生未经处理的异常。", ex);
+            }
+        }
+
+        /// <inheritdoc />
         public async Task<List<PostContentEntity>> FindPostContentEntities(IEnumerable<ObjectId> contentIds)
         {
             if (contentIds == null)
