@@ -43,29 +43,12 @@ namespace BITTreeHole.Controllers
         // POST: /regions/{name}
         [HttpPost("{name}")]
         [RequireJwt(RequireAdmin = true)]
-        public async Task<ActionResult> Post(string name, List<IFormFile> uploadedFiles)
+        public async Task<ActionResult> Post(string name, [FromBody] string imageBase64)
         {
             var region = new PostRegionEntity { Title = name };
-            if (uploadedFiles.Count > 0)
+            if (!string.IsNullOrEmpty(imageBase64))
             {
-                if (uploadedFiles.Count > 1)
-                {
-                    // 上传了超过一个图标文件
-                    return BadRequest();
-                }
-
-                var iconFile = uploadedFiles[0];
-                if (iconFile.Length > IconFileSizeLimit)
-                {
-                    // 图标大小超过限制
-                    return BadRequest();
-                }
-
-                using (var memStream = new MemoryStream())
-                {
-                    await iconFile.CopyToAsync(memStream);
-                    region.IconData = memStream.ToArray();
-                }
+                region.IconData = Convert.FromBase64String(imageBase64);
             }
             
             try
