@@ -32,6 +32,16 @@ namespace BITTreeHole.Data
             if (wechatId == null)
                 throw new ArgumentNullException(nameof(wechatId));
 
+            var existingEntity = await dataFacade.Users
+                                                 .Where(u => u.WechatId == wechatId)
+                                                 .FirstOrDefaultAsync();
+            if (existingEntity != null)
+            {
+                // 用户已经存在于数据源中
+                return existingEntity;
+            }
+            
+            // 用户在数据源中未找到
             var userEntity = new UserEntity
             {
                 WechatId = wechatId
@@ -45,12 +55,18 @@ namespace BITTreeHole.Data
             }
             catch (DataFacadeException)
             {
+                // 重做用户查询
+                existingEntity = await dataFacade.Users
+                                                 .Where(u => u.WechatId == wechatId)
+                                                 .FirstOrDefaultAsync();
+                if (existingEntity != null)
+                {
+                    return existingEntity;
+                }
+
+                // 重做用户查询仍然无法找到用户
+                throw;
             }
-            
-            // 用户已经存在于数据源中
-            return await dataFacade.Users
-                                   .Where(u => u.WechatId == wechatId)
-                                   .FirstOrDefaultAsync();
         }
 
         /// <summary>

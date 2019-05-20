@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BITTreeHole.Data.Contexts;
 using BITTreeHole.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MySql.Data.MySqlClient;
@@ -137,9 +138,9 @@ namespace BITTreeHole.Data
             {
                 await _mysqlDbContext.SaveChangesAsync();
             }
-            catch (MySqlException ex)
+            catch (DbUpdateException ex)
             {
-                throw new DataFacadeException("MySQL数据源抛出了未经处理的异常。", ex);
+                throw new DataFacadeException("数据源抛出了未经处理的异常。", ex);
             }
         }
     }
