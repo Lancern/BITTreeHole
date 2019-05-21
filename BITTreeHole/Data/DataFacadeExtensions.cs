@@ -343,5 +343,36 @@ namespace BITTreeHole.Data
             indexEntity.UpdateTime = DateTime.Now;
             await dataFacade.CommitChanges();
         }
+        
+        /// <summary>
+        /// 删除指定的帖子。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="postId">要删除的帖子 ID。</param>
+        /// <param name="permanent">是否永久性地删除帖子数据</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="dataFacade"/>为null
+        /// </exception>
+        /// <exception cref="DataFacadeException">当数据源抛出了未经处理的异常时抛出</exception>
+        public static async Task RemovePost(this IDataFacade dataFacade, int postId, bool permanent = false)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+            if (permanent)
+                throw new NotImplementedException();
+
+            var indexEntity = await dataFacade.Posts
+                                              .Where(e => e.Id == postId && e.IsRemoved == false)
+                                              .Include(e => e.IsRemoved)
+                                              .FirstOrDefaultAsync();
+            if (indexEntity == null)
+            {
+                throw new PostNotFoundException();
+            }
+
+            indexEntity.IsRemoved = true;
+            await dataFacade.CommitChanges();
+        }
     }
 }

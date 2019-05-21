@@ -269,5 +269,35 @@ namespace BITTreeHole.Controllers
 
             return Ok();
         }
+
+        // DELETE: /posts/{id}
+        [HttpDelete("posts/{id}")]
+        [RequireJwt]
+        public async Task<ActionResult> Delete(int id)
+        {
+            // 检查用户是否能够修改指定的帖子
+            var ability = await CheckUserEditionToPost(id);
+            if (ability != null)
+            {
+                return ability;
+            }
+
+            try
+            {
+                await _dataFacade.RemovePost(id);
+            }
+            catch (PostNotFoundException)
+            {
+                // 指定的帖子未找到
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
+            return Ok();
+        }
     }
 }
