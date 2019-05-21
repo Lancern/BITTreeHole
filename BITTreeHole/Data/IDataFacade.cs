@@ -92,6 +92,14 @@ namespace BITTreeHole.Data
         /// <summary>
         /// 查询帖子正文实体对象。
         /// </summary>
+        /// <param name="contentId">要查询的帖子正文实体对象 ID。</param>
+        /// <returns></returns>
+        /// <exception cref="DataFacadeException">当数据源抛出了未经处理的异常时</exception>
+        Task<PostContentEntity> FindPostContentEntity(ObjectId contentId);
+
+        /// <summary>
+        /// 查询帖子正文实体对象。
+        /// </summary>
         /// <param name="contentIds">需要查询的帖子正文实体对象的 ID。</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"><paramref name="contentIds"/>为null</exception>
@@ -108,7 +116,7 @@ namespace BITTreeHole.Data
         ///     <paramref name="positionValue"/>为null
         /// </exception>
         /// <exception cref="DataFacadeException">当数据源抛出了未经处理的异常时</exception>
-        Task UpdatePostContentImageIds(ObjectId postContentId, IReadOnlyDictionary<int, ObjectId> positionValue);
+        Task UpdatePostContentImageIds(ObjectId postContentId, IReadOnlyDictionary<int, ObjectId?> positionValue);
 
         /// <summary>
         /// 将给定的图片数据流上传至数据源中。
@@ -118,6 +126,13 @@ namespace BITTreeHole.Data
         /// <exception cref="ArgumentNullException"><paramref name="imageDataStream"/>为null</exception>
         /// <exception cref="DataFacadeException">当数据源抛出了未经处理的异常时</exception>
         Task<ObjectId> UploadImage(Stream imageDataStream);
+
+        /// <summary>
+        /// 从数据源中删除给定的图片。
+        /// </summary>
+        /// <param name="imageId">要删除的图片 ID。</param>
+        /// <returns></returns>
+        Task RemoveImage(ObjectId imageId);
 
         /// <summary>
         /// 将所有未提交的更改提交到数据源。

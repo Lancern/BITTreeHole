@@ -82,6 +82,48 @@ namespace BITTreeHole.Controllers
             }
         }
 
+        /// <summary>
+        /// 筛查当前用户对给定的帖子的编辑能力。
+        /// </summary>
+        /// <param name="postId">目标帖子。</param>
+        /// <returns>
+        /// 若当前用户能够编辑目标帖子，返回 null；否则返回表示相应错误的响应动作包装。
+        /// </returns>
+        private async Task<ActionResult> CheckUserEditionToPost(int postId)
+        {
+            var authToken = HttpContext.GetAuthenticationToken();
+            if (authToken == null)
+            {
+                return Forbid();
+            }
+
+            if (authToken.IsAdmin)
+            {
+                // 管理员可以修改所有帖子
+                return null;
+            }
+            
+            // 检查帖子是否由当前用户发出
+            var postAuthorId = 0;
+            try
+            {
+                postAuthorId = await _dataFacade.GetPostAuthorId(postId);
+            }
+            catch (PostNotFoundException)
+            {
+                // 帖子不存在
+                return NotFound();
+            }
+
+            if (postAuthorId != authToken.UserId)
+            {
+                // 帖子不是由当前用户发出
+                return Forbid();
+            }
+
+            return null;
+        }
+
         // POST: /posts/{id}/images/{mask}
         [HttpPost("posts/{id}/images/{mask}")]
         [RequireJwt]
@@ -95,6 +137,12 @@ namespace BITTreeHole.Controllers
             catch (InvalidImageMaskException)
             {
                 return BadRequest();
+            }
+
+            var ability = await CheckUserEditionToPost(id);
+            if (ability != null)
+            {
+                return ability;
             }
             
             var imageDataStreamFactories = new Dictionary<int, Func<Stream>>();
@@ -118,6 +166,46 @@ namespace BITTreeHole.Controllers
                 throw;
             }
 
+            return Ok();
+        }
+
+        // DELETE: /posts/{id}/images/{mask}
+        [HttpDelete("posts/{id}/images/{mask}")]
+        [RequireJwt]
+        public async Task<ActionResult> DeleteImages(int id, string mask)
+        {
+            int[] imageIndexes;
+            try
+            {
+                imageIndexes = ImageMaskUtil.ExtractImageIdFromMask(mask);
+            }
+            catch (InvalidImageMaskException)
+            {
+                // 无效的图像掩码
+                return BadRequest();
+            }
+
+            var ability = await CheckUserEditionToPost(id);
+            if (ability != null)
+            {
+                return ability;
+            }
+
+            try
+            {
+                await _dataFacade.RemovePostImages(id, imageIndexes);
+            }
+            catch (PostNotFoundException)
+            {
+                // 帖子不存在。
+                return NotFound();
+            }
+            catch (DataFacadeException ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+            
             return Ok();
         }
     }

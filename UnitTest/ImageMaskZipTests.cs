@@ -9,7 +9,7 @@ using Xunit;
 
 namespace BITTreeHole.Test.UnitTest
 {
-    public class ImageMaskUtilTests
+    public class ImageMaskZipTests
     {
         private sealed class MockFormFile : IFormFile
         {
@@ -51,6 +51,8 @@ namespace BITTreeHole.Test.UnitTest
                 () => ImageMaskUtil.ZipImageIdMask("0123abc", new List<IFormFile>()));
             Assert.Throws<InvalidImageMaskException>(
                 () => ImageMaskUtil.ZipImageIdMask("0129", new List<IFormFile>()));
+            Assert.Throws<InvalidImageMaskException>(
+                () => ImageMaskUtil.ZipImageIdMask("0121", new List<IFormFile> { null, null, null, null }));
         }
 
         [Fact]

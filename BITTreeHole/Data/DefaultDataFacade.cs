@@ -151,6 +151,15 @@ namespace BITTreeHole.Data
         }
 
         /// <inheritdoc />
+        public async Task<PostContentEntity> FindPostContentEntity(ObjectId contentId)
+        {
+            return await AccessDataSource(
+                async () => await _mongoDbContext.PostContents
+                                                 .Find(Builders<PostContentEntity>.Filter.Eq(e => e.Id, contentId))
+                                                 .FirstOrDefaultAsync());
+        }
+
+        /// <inheritdoc />
         public async Task<List<PostContentEntity>> FindPostContentEntities(IEnumerable<ObjectId> contentIds)
         {
             if (contentIds == null)
@@ -163,7 +172,7 @@ namespace BITTreeHole.Data
         }
 
         /// <inheritdoc />
-        public async Task UpdatePostContentImageIds(ObjectId postContentId, IReadOnlyDictionary<int, ObjectId> positionValue)
+        public async Task UpdatePostContentImageIds(ObjectId postContentId, IReadOnlyDictionary<int, ObjectId?> positionValue)
         {
             if (positionValue == null)
                 throw new ArgumentNullException(nameof(positionValue));
@@ -205,6 +214,13 @@ namespace BITTreeHole.Data
 
             return await AccessDataSource(
                 async () => await _mongoDbContext.ImageBucket.UploadFromStreamAsync(string.Empty, imageDataStream));
+        }
+
+        /// <inheritdoc />
+        public async Task RemoveImage(ObjectId imageId)
+        {
+            await AccessDataSource(
+                async () => await _mongoDbContext.ImageBucket.DeleteAsync(imageId));
         }
 
         /// <inheritdoc />

@@ -107,6 +107,34 @@ namespace BITTreeHole.Data
         }
 
         /// <summary>
+        /// 通过帖子 ID 获取帖子数据。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="postId">帖子 ID。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"><paramref name="dataFacade"/>为null</exception>
+        public static async Task<(PostEntity IndexEntity, PostContentEntity ContentEntity)?>
+            FindPost(this IDataFacade dataFacade, int postId)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+
+            var indexEntity = await dataFacade.Posts
+                                              // 下面的语句中务必使用 e.IsRemoved == false 以正确引导 EFCore 解析查询
+                                              .FirstOrDefaultAsync(e => e.Id == postId && e.IsRemoved == false);
+            if (indexEntity == null)
+            {
+                // 没有在数据源中找到指定的帖子 ID
+                return null;
+            }
+
+            var contentId = new ObjectId(indexEntity.ContentId);
+            var contentEntity = await dataFacade.FindPostContentEntity(contentId);
+
+            return (indexEntity, contentEntity);
+        }
+
+        /// <summary>
         /// 查询帖子信息。
         /// </summary>
         /// <param name="dataFacade"></param>
@@ -152,6 +180,34 @@ namespace BITTreeHole.Data
         }
 
         /// <summary>
+        /// 获取指定帖子的创建者 ID。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="postId">帖子 ID。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="dataFacade"/>为null
+        /// </exception>
+        /// <exception cref="PostNotFoundException">指定的帖子不存在</exception>
+        public static async Task<int> GetPostAuthorId(this IDataFacade dataFacade, int postId)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+
+            var indexEntity = await dataFacade.Posts
+                                              .AsNoTracking()
+                                              .Where(e => e.Id == postId && e.IsRemoved == false)
+                                              .Include(e => e.AuthorId)
+                                              .FirstOrDefaultAsync();
+            if (indexEntity == null)
+            {
+                throw new PostNotFoundException();
+            }
+
+            return indexEntity.AuthorId;
+        }
+
+        /// <summary>
         /// 向给定的帖子上传图片。
         /// </summary>
         /// <param name="dataFacade"></param>
@@ -161,7 +217,11 @@ namespace BITTreeHole.Data
         /// <exception cref="ArgumentNullException">
         ///     <paramref name="images"/>为null
         /// </exception>
-        /// <exception cref="PostNotFoundException">指定的帖子不存在</exception>
+        /// <exception cref="PostNotFoundException">
+        ///     指定的帖子不存在
+        ///     或
+        ///     帖子存在但其删除标记为true
+        /// </exception>
         public static async Task UpdatePostImages(this IDataFacade dataFacade, 
                                                   int postId, IReadOnlyDictionary<int, Func<Stream>> images)
         {
@@ -171,8 +231,9 @@ namespace BITTreeHole.Data
             // TODO: 在这里添加代码对 images 执行验证
 
             var indexEntity = await dataFacade.Posts
-                                              .AsNoTracking()
-                                              .Where(e => e.Id == postId)
+                                              // 下面的语句中务必使用 e.IsRemoved == true 以正确引导 EF Core 建立查询
+                                              .Where(e => e.Id == postId && e.IsRemoved == false)
+                                              .Include(e => e.UpdateTime)
                                               .Include(e => e.ContentId)
                                               .FirstOrDefaultAsync();
             if (indexEntity == null)
@@ -181,21 +242,106 @@ namespace BITTreeHole.Data
                 throw new PostNotFoundException();
             }
             
-            var imageIds = new ConcurrentDictionary<int, ObjectId>();
-            var uploadingTasks = new List<Task>();
+            var contentId = new ObjectId(indexEntity.ContentId);
+            var contentEntity = await dataFacade.FindPostContentEntity(contentId);
+            
+            // 删除已有的、被覆盖的图片数据
+            var removeTasks = new List<Task>();
+            foreach (var imageIndex in images.Keys.Where(i => i >= 0 && i < contentEntity.ImageIds.Length))
+            {
+                var imageId = contentEntity.ImageIds[imageIndex];
+                if (imageId == null)
+                {
+                    continue;
+                }
+                
+                removeTasks.Add(dataFacade.RemoveImage(imageId.Value));
+            }
+
+            await Task.WhenAll(removeTasks);
+
+            // 将图片上传至数据源
+            var imageIds = new ConcurrentDictionary<int, ObjectId?>();
+            var uploadTasks = new List<Task>();
             foreach (var (index, imageDataStreamFactory) in images)
             {
                 using (var imageDataStream = imageDataStreamFactory())
                 {
-                    uploadingTasks.Add(dataFacade.UploadImage(imageDataStream)
+                    uploadTasks.Add(dataFacade.UploadImage(imageDataStream)
                                                  .ContinueWith((t, i) => imageIds.TryAdd((int)i, t.Result), index));
                 }
             }
 
-            Task.WaitAll(uploadingTasks.ToArray());
+            await Task.WhenAll(uploadTasks);
 
-            var contentId = new ObjectId(indexEntity.ContentId);
+            // 更新内容实体对象
             await dataFacade.UpdatePostContentImageIds(contentId, imageIds);
+            
+            // 更新索引实体对象中的上次更新时间戳
+            indexEntity.UpdateTime = DateTime.Now;
+            await dataFacade.CommitChanges();
+        }
+
+        /// <summary>
+        /// 移除帖子图片。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="postId">帖子 ID。</param>
+        /// <param name="indexesToRemove">要移除的图片索引。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="dataFacade"/>为null
+        ///     或
+        ///     <paramref name="indexesToRemove"/>为null
+        /// </exception>
+        /// <exception cref="PostNotFoundException">指定的帖子不存在。</exception>
+        public static async Task RemovePostImages(this IDataFacade dataFacade,
+                                                  int postId, IEnumerable<int> indexesToRemove)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+            if (indexesToRemove == null)
+                throw new ArgumentNullException(nameof(indexesToRemove));
+            
+            // TODO: 在这里添加代码对 indexesToRemove 进行验证
+
+            var indexEntity = await dataFacade.Posts
+                                              .Where(e => e.Id == postId)
+                                              .Include(e => e.UpdateTime)
+                                              .Include(e => e.ContentId)
+                                              .FirstOrDefaultAsync();
+            if (indexEntity == null)
+            {
+                throw new PostNotFoundException();
+            }
+            
+            var contentId = new ObjectId(indexEntity.ContentId);
+            var contentEntity = await dataFacade.FindPostContentEntity(contentId);
+
+            var indexesToRemoveConcrete = indexesToRemove.ToArray();
+            
+            // 删除图片数据
+            var removeTasks = new List<Task>();
+            foreach (var imageIndex in indexesToRemoveConcrete.Where(i => i >= 0 && i < contentEntity.ImageIds.Length))
+            {
+                var imageId = contentEntity.ImageIds[imageIndex];
+                if (imageId == null)
+                {
+                    continue;
+                }
+                
+                removeTasks.Add(dataFacade.RemoveImage(imageId.Value));
+            }
+
+            await Task.WhenAll(removeTasks);
+
+            // 更新内容实体对象
+            var imageSetDict = indexesToRemoveConcrete.ToDictionary<int, int, ObjectId?>(i => i, i => null);
+            await dataFacade.UpdatePostContentImageIds(contentId, imageSetDict);
+            
+            // 更新索引实体对象中的最后更新时间戳
+            indexEntity.UpdateTime = DateTime.Now;
+            await dataFacade.CommitChanges();
         }
     }
 }

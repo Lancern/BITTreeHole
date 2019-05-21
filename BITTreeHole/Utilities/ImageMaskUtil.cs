@@ -85,5 +85,23 @@ namespace BITTreeHole.Utilities
                        .Zip(imageFiles, (id, file) => (id, file))
                        .ToDictionary(pair => pair.Item1, pair => pair.Item2);
         }
+
+        /// <summary>
+        /// 从给定的图片掩码抽取图片索引。
+        /// </summary>
+        /// <param name="mask">图片掩码。</param>
+        /// <returns>从图片掩码中抽取的图片索引。</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="mask"/>为null</exception>
+        /// <exception cref="InvalidImageMaskException">图片掩码无效。</exception>
+        public static int[] ExtractImageIdFromMask(string mask)
+        {
+            if (mask == null)
+                throw new ArgumentNullException(nameof(mask));
+            
+            EnsureValidMask(mask);
+
+            return mask.Select(ch => ch - '0')
+                       .ToArray();
+        }
     }
 }

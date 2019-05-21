@@ -60,7 +60,7 @@ namespace BITTreeHole.Controllers
                 throw;
             }
             
-            var token = new AuthenticationToken(userEntity.Id, wechatToken);
+            var token = new AuthenticationToken(userEntity.Id, userEntity.IsAdmin, wechatToken);
             return AuthenticationResult.Success(_jwt.Encode(token));
         }
     }
