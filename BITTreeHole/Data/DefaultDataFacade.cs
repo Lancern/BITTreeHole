@@ -179,7 +179,7 @@ namespace BITTreeHole.Data
             var maxIndex = positionValue.Keys.Max();
             if (imageIds.Length <= maxIndex)
             {
-                var newImageIds = new ObjectId[maxIndex + 1];
+                var newImageIds = new ObjectId?[maxIndex + 1];
                 Array.Copy(imageIds, newImageIds, imageIds.Length);
                 imageIds = newImageIds;
             }
