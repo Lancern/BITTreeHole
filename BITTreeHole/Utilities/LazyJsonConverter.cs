@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace BITTreeHole.Utilities
 {
@@ -26,8 +27,13 @@ namespace BITTreeHole.Utilities
         public override Lazy<T> ReadJson(JsonReader reader, Type objectType, Lazy<T> existingValue, 
                                          bool hasExistingValue, JsonSerializer serializer)
         {
-            var value = serializer.Deserialize<T>(reader);
-            return new Lazy<T>(value);
+            var value = JObject.ReadFrom(reader);
+            if (value.Type == JTokenType.Undefined)
+            {
+                return new Lazy<T>();
+            }
+            
+            return new Lazy<T>(value.Value<T>());
         }
     }
 }
