@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using BITTreeHole.Data.Entities;
@@ -147,6 +149,53 @@ namespace BITTreeHole.Data
                     return (indexEntity, contentEntity);
                 return (indexEntity, null);
             });
+        }
+
+        /// <summary>
+        /// 向给定的帖子上传图片。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="postId">帖子 ID。</param>
+        /// <param name="images">图片 ID 及对应图片的数据流工厂。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="images"/>为null
+        /// </exception>
+        /// <exception cref="PostNotFoundException">指定的帖子不存在</exception>
+        public static async Task UpdatePostImages(this IDataFacade dataFacade, 
+                                                  int postId, IReadOnlyDictionary<int, Func<Stream>> images)
+        {
+            if (images == null)
+                throw new ArgumentNullException(nameof(images));
+            
+            // TODO: 在这里添加代码对 images 执行验证
+
+            var indexEntity = await dataFacade.Posts
+                                              .AsNoTracking()
+                                              .Where(e => e.Id == postId)
+                                              .Include(e => e.ContentId)
+                                              .FirstOrDefaultAsync();
+            if (indexEntity == null)
+            {
+                // 指定的帖子不存在
+                throw new PostNotFoundException();
+            }
+            
+            var imageIds = new ConcurrentDictionary<int, ObjectId>();
+            var uploadingTasks = new List<Task>();
+            foreach (var (index, imageDataStreamFactory) in images)
+            {
+                using (var imageDataStream = imageDataStreamFactory())
+                {
+                    uploadingTasks.Add(dataFacade.UploadImage(imageDataStream)
+                                                 .ContinueWith((t, i) => imageIds.TryAdd((int)i, t.Result), index));
+                }
+            }
+
+            Task.WaitAll(uploadingTasks.ToArray());
+
+            var contentId = new ObjectId(indexEntity.ContentId);
+            await dataFacade.UpdatePostContentImageIds(contentId, imageIds);
         }
     }
 }

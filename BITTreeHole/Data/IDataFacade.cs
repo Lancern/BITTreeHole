@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using BITTreeHole.Data.Contexts.DependencyInjection;
@@ -96,6 +97,27 @@ namespace BITTreeHole.Data
         /// <exception cref="ArgumentNullException"><paramref name="contentIds"/>为null</exception>
         /// <exception cref="DataFacadeException">当数据源抛出了未经处理的异常时</exception>
         Task<List<PostContentEntity>> FindPostContentEntities(IEnumerable<ObjectId> contentIds);
+
+        /// <summary>
+        /// 更新帖子内容实体对象中包含的图片 ID。
+        /// </summary>
+        /// <param name="postContentId">帖子内容实体对象 ID。</param>
+        /// <param name="positionValue">要更新的图像 ID 及其对应的索引。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="positionValue"/>为null
+        /// </exception>
+        /// <exception cref="DataFacadeException">当数据源抛出了未经处理的异常时</exception>
+        Task UpdatePostContentImageIds(ObjectId postContentId, IReadOnlyDictionary<int, ObjectId> positionValue);
+
+        /// <summary>
+        /// 将给定的图片数据流上传至数据源中。
+        /// </summary>
+        /// <param name="imageDataStream">包含图片数据的流对象。</param>
+        /// <returns>上传的图片 ID。</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="imageDataStream"/>为null</exception>
+        /// <exception cref="DataFacadeException">当数据源抛出了未经处理的异常时</exception>
+        Task<ObjectId> UploadImage(Stream imageDataStream);
 
         /// <summary>
         /// 将所有未提交的更改提交到数据源。

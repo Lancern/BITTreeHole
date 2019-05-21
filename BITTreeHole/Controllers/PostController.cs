@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using BITTreeHole.Data;
@@ -7,6 +8,8 @@ using BITTreeHole.Extensions;
 using BITTreeHole.Filters;
 using BITTreeHole.Models;
 using BITTreeHole.Services;
+using BITTreeHole.Utilities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -77,6 +80,45 @@ namespace BITTreeHole.Controllers
                 _logger.LogError(ex, "访问数据源时发生异常：{0}：{1}", ex.GetType(), ex.Message);
                 throw;
             }
+        }
+
+        // POST: /posts/{id}/images/{mask}
+        [HttpPost("posts/{id}/images/{mask}")]
+        [RequireJwt]
+        public async Task<ActionResult> PostImages(int id, string mask, List<IFormFile> imageFiles)
+        {
+            Dictionary<int, IFormFile> images;
+            try
+            {
+                images = ImageMaskUtil.ZipImageIdMask(mask, imageFiles);
+            }
+            catch (InvalidImageMaskException)
+            {
+                return BadRequest();
+            }
+            
+            var imageDataStreamFactories = new Dictionary<int, Func<Stream>>();
+            foreach (var (index, file) in images)
+            {
+                imageDataStreamFactories.Add(index, () => file.OpenReadStream());
+            }
+
+            try
+            {
+                await _dataFacade.UpdatePostImages(id, imageDataStreamFactories);
+            }
+            catch (PostNotFoundException)
+            {
+                // 帖子不存在。
+                return NotFound();
+            }
+            catch (DataFacadeException ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
+            return Ok();
         }
     }
 }

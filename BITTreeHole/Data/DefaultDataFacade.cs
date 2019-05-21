@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using BITTreeHole.Data.Contexts;
@@ -7,7 +8,6 @@ using BITTreeHole.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using MySql.Data.MySqlClient;
 
 namespace BITTreeHole.Data
 {
@@ -57,6 +57,50 @@ namespace BITTreeHole.Data
         /// <inheritdoc />
         public IQueryable<UserWatchPostEntity> UserWatchPosts => _mysqlDbContext.UserWatchPosts;
 
+        /// <summary>
+        /// 执行给定的异步回调并将数据源抛出的异常包装至 <see cref="DataFacadeException"/> 中抛出。
+        /// </summary>
+        /// <param name="actions">要执行的异步回调。</param>
+        /// <returns></returns>
+        /// <exception cref="DataFacadeException">当异步回调抛出了数据源相关异常时抛出。</exception>
+        private async Task AccessDataSource(Func<Task> actions)
+        {
+            try
+            {
+                await actions();
+            }
+            catch (MongoException ex)
+            {
+                throw new DataFacadeException("MongoDB数据源抛出了未经处理的异常。", ex);
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new DataFacadeException("MySQL数据源抛出了未经处理的异常。", ex);
+            }
+        }
+
+        /// <summary>
+        /// 执行给定的异步回调并将数据源抛出的异常包装至 <see cref="DataFacadeException"/> 中抛出。
+        /// </summary>
+        /// <param name="actions">要执行的异步回调。</param>
+        /// <returns>异步回调的返回值。</returns>
+        /// <exception cref="DataFacadeException">当异步回调抛出了数据源相关异常时抛出。</exception>
+        private async Task<T> AccessDataSource<T>(Func<Task<T>> actions)
+        {
+            try
+            {
+                return await actions();
+            }
+            catch (MongoException ex)
+            {
+                throw new DataFacadeException("MongoDB数据源抛出了未经处理的异常。", ex);
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new DataFacadeException("MySQL数据源抛出了未经处理的异常。", ex);
+            }
+        }
+
         /// <inheritdoc />
         public void AddUser(UserEntity user)
         {
@@ -103,14 +147,7 @@ namespace BITTreeHole.Data
             if (postContentEntity == null)
                 throw new ArgumentNullException(nameof(postContentEntity));
 
-            try
-            {
-                await _mongoDbContext.PostContents.InsertOneAsync(postContentEntity);
-            }
-            catch (MongoException ex)
-            {
-                throw new DataFacadeException("向 MongoDB 中插入帖子正文实体对象时发生未经处理的异常。", ex);
-            }
+            await AccessDataSource(async () => await _mongoDbContext.PostContents.InsertOneAsync(postContentEntity));
         }
 
         /// <inheritdoc />
@@ -119,29 +156,61 @@ namespace BITTreeHole.Data
             if (contentIds == null)
                 throw new ArgumentNullException(nameof(contentIds));
 
-            try
+            return await AccessDataSource(
+                async () => await _mongoDbContext.PostContents
+                                                 .Find(Builders<PostContentEntity>.Filter.In(e => e.Id, contentIds))
+                                                 .ToListAsync());
+        }
+
+        /// <inheritdoc />
+        public async Task UpdatePostContentImageIds(ObjectId postContentId, IReadOnlyDictionary<int, ObjectId> positionValue)
+        {
+            if (positionValue == null)
+                throw new ArgumentNullException(nameof(positionValue));
+            
+            // TODO: 在这里添加代码对 positionValue 进行验证
+
+            var imageIds = await AccessDataSource(
+                async () => await _mongoDbContext.PostContents
+                                                 .Find(Builders<PostContentEntity>.Filter.Eq(e => e.Id, postContentId))
+                                                 .Project(e => e.ImageIds)
+                                                 .FirstOrDefaultAsync());
+
+            var maxIndex = positionValue.Keys.Max();
+            if (imageIds.Length <= maxIndex)
             {
-                return await _mongoDbContext.PostContents
-                                            .Find(Builders<PostContentEntity>.Filter.In(e => e.Id, contentIds))
-                                            .ToListAsync();
+                var newImageIds = new ObjectId[maxIndex + 1];
+                Array.Copy(imageIds, newImageIds, imageIds.Length);
+                imageIds = newImageIds;
             }
-            catch (MongoException ex)
+
+            foreach (var (index, id) in positionValue)
             {
-                throw new DataFacadeException("MongoDB数据源抛出了未经处理的异常。", ex);
+                imageIds[index] = id;
             }
+
+            await AccessDataSource(
+                async () => await _mongoDbContext.PostContents
+                                                 .UpdateOneAsync(
+                                                     Builders<PostContentEntity>.Filter.Eq(e => e.Id, postContentId),
+                                                     Builders<PostContentEntity>
+                                                         .Update.Set(e => e.ImageIds, imageIds)));
+        }
+
+        /// <inheritdoc />
+        public async Task<ObjectId> UploadImage(Stream imageDataStream)
+        {
+            if (imageDataStream == null)
+                throw new ArgumentNullException(nameof(imageDataStream));
+
+            return await AccessDataSource(
+                async () => await _mongoDbContext.ImageBucket.UploadFromStreamAsync(string.Empty, imageDataStream));
         }
 
         /// <inheritdoc />
         public async Task CommitChanges()
         {
-            try
-            {
-                await _mysqlDbContext.SaveChangesAsync();
-            }
-            catch (DbUpdateException ex)
-            {
-                throw new DataFacadeException("数据源抛出了未经处理的异常。", ex);
-            }
+            await AccessDataSource(async () => await _mysqlDbContext.SaveChangesAsync());
         }
     }
 }
