@@ -1,12 +1,9 @@
 using System;
-using System.Linq;
-using BITTreeHole.Data;
 using BITTreeHole.Extensions;
 using BITTreeHole.Models;
 using BITTreeHole.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BITTreeHole.Filters
@@ -23,7 +20,6 @@ namespace BITTreeHole.Filters
         private sealed class RequireJwtImplAttribute : IAuthorizationFilter
         {
             private readonly IJwtService _jwt;
-            private readonly IDataFacade _dataFacade;
             private readonly bool _requireAdmin;
 
             /// <summary>
@@ -35,25 +31,10 @@ namespace BITTreeHole.Filters
             /// <exception cref="ArgumentNullException">
             ///     <paramref name="jwtService"/>为null
             /// </exception>
-            public RequireJwtImplAttribute(IJwtService jwtService, IDataFacade dataFacade, bool requireAdmin)
+            public RequireJwtImplAttribute(IJwtService jwtService, bool requireAdmin)
             {
                 _jwt = jwtService ?? throw new ArgumentNullException(nameof(jwtService));
-                _dataFacade = dataFacade ?? throw new ArgumentNullException(nameof(dataFacade));
                 _requireAdmin = requireAdmin;
-            }
-
-            /// <summary>
-            /// 检查给定的 <see cref="AuthenticationToken"/> 所标识的用户是否具有管理员权限。
-            /// </summary>
-            /// <param name="token"></param>
-            /// <returns>用户是否具有管理员权限。</returns>
-            private bool AuthorizeAdmin(AuthenticationToken token)
-            {
-                var userEntity = _dataFacade.Users
-                                            .AsNoTracking()
-                                            .Include(entity => entity.IsAdmin)
-                                            .FirstOrDefault(entity => entity.Id == token.UserId);
-                return userEntity != null && userEntity.IsAdmin;
             }
             
             /// <summary>
@@ -81,7 +62,7 @@ namespace BITTreeHole.Filters
                     return;
                 }
 
-                if (_requireAdmin && !AuthorizeAdmin(authToken))
+                if (_requireAdmin && !authToken.IsAdmin)
                 {
                     // 用户不具备管理员权限。
                     context.Result = new StatusCodeResult(403);
@@ -105,8 +86,7 @@ namespace BITTreeHole.Filters
         public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
         {
             var jwtService = serviceProvider.GetService<IJwtService>();
-            var dataFacade = serviceProvider.GetService<IDataFacade>();
-            return new RequireJwtImplAttribute(jwtService, dataFacade, RequireAdmin);
+            return new RequireJwtImplAttribute(jwtService, RequireAdmin);
         }
 
         /// <inheritdoc />

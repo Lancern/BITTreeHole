@@ -11,7 +11,9 @@ using BITTreeHole.Services;
 using BITTreeHole.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MongoDB.Bson;
 
 namespace BITTreeHole.Controllers
 {
@@ -206,6 +208,65 @@ namespace BITTreeHole.Controllers
                 throw;
             }
             
+            return Ok();
+        }
+
+        [HttpPut("/posts/{id}")]
+        [RequireJwt]
+        public async Task<ActionResult> Put(int id, [FromBody] PostModificationInfo info)
+        {
+            // 检查用户是否有权修改帖子内容
+            var ability = await CheckUserEditionToPost(id);
+            if (ability != null)
+            {
+                return ability;
+            }
+
+            if (!info.Title.IsValueCreated && !info.Text.IsValueCreated)
+            {
+                return Ok();
+            }
+
+            var indexEntity = await _dataFacade.Posts
+                                               .Where(e => e.Id == id && e.IsRemoved == false)
+                                               .FirstOrDefaultAsync();
+            if (indexEntity == null)
+            {
+                // 帖子不存在
+                return NotFound();
+            }
+
+            // 更新上次修改时间
+            indexEntity.UpdateTime = DateTime.Now;
+            if (info.Title.IsValueCreated)
+            {
+                indexEntity.Title = info.Title.Value;
+            }
+            
+            try
+            {
+                await _dataFacade.CommitChanges();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
+            if (info.Text.IsValueCreated)
+            {
+                var contentId = new ObjectId(indexEntity.ContentId);
+                try
+                {
+                    await _dataFacade.UpdatePostContentText(contentId, info.Text.Value);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                    throw;
+                }
+            }
+
             return Ok();
         }
     }

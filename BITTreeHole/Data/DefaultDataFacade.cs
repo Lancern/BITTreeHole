@@ -172,6 +172,18 @@ namespace BITTreeHole.Data
         }
 
         /// <inheritdoc />
+        public async Task UpdatePostContentText(ObjectId postContentId, string text)
+        {
+            if (text == null)
+                throw new ArgumentNullException(nameof(text));
+
+            await AccessDataSource(
+                async () => await _mongoDbContext.PostContents
+                                                 .UpdateOneAsync(Builders<PostContentEntity>.Filter.Eq(e => e.Id, postContentId),
+                                                     Builders<PostContentEntity>.Update.Set(e => e.Text, text)));
+        }
+
+        /// <inheritdoc />
         public async Task UpdatePostContentImageIds(ObjectId postContentId, IReadOnlyDictionary<int, ObjectId?> positionValue)
         {
             if (positionValue == null)

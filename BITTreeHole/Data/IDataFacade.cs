@@ -107,6 +107,14 @@ namespace BITTreeHole.Data
         Task<List<PostContentEntity>> FindPostContentEntities(IEnumerable<ObjectId> contentIds);
 
         /// <summary>
+        /// 更新帖子正文实体对象的文本内容。
+        /// </summary>
+        /// <param name="postContentId">帖子正文实体对象 ID。</param>
+        /// <param name="text">要设置的文本内容。</param>
+        /// <returns></returns>
+        Task UpdatePostContentText(ObjectId postContentId, string text);
+
+        /// <summary>
         /// 更新帖子内容实体对象中包含的图片 ID。
         /// </summary>
         /// <param name="postContentId">帖子内容实体对象 ID。</param>
