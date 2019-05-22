@@ -15,10 +15,10 @@ namespace BITTreeHole.Services
         /// 创建帖子实体对象。
         /// </summary>
         /// <param name="authorId">发帖用户 ID。</param>
-        /// <param name="infoModel">帖子信息模型。</param>
+        /// <param name="creationInfoModel">帖子信息模型。</param>
         /// <returns>帖子索引实体对象与帖子内容实体对象。</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        (PostEntity IndexEntity, PostContentEntity ContentEntity) CreatePostEntities(int authorId, PostInfo infoModel);
+        (PostEntity IndexEntity, PostContentEntity ContentEntity) CreatePostEntities(int authorId, PostCreationInfo creationInfoModel);
     }
 
     namespace DependencyInjection

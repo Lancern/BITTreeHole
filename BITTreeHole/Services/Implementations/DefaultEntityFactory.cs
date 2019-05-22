@@ -11,15 +11,15 @@ namespace BITTreeHole.Services.Implementations
     {
         /// <inheritdoc />
         public (PostEntity IndexEntity, PostContentEntity ContentEntity) CreatePostEntities(
-            int authorId, PostInfo infoModel)
+            int authorId, PostCreationInfo creationInfoModel)
         {
-            if (infoModel == null)
-                throw new ArgumentNullException(nameof(infoModel));
+            if (creationInfoModel == null)
+                throw new ArgumentNullException(nameof(creationInfoModel));
 
             var contentEntity = PostContentEntity.Create();
-            contentEntity.Text = infoModel.Text;
+            contentEntity.Text = creationInfoModel.Text;
 
-            var indexEntity = PostEntity.Create(authorId, infoModel.RegionId, infoModel.Title,
+            var indexEntity = PostEntity.Create(authorId, creationInfoModel.RegionId, creationInfoModel.Title,
                                                 contentEntity.Id.ToByteArray());
             return (indexEntity, contentEntity);
         }

@@ -69,6 +69,11 @@ namespace BITTreeHole.Models
         public string Text { get; }
         
         /// <summary>
+        /// 获取帖子图片数量。
+        /// </summary>
+        public int NumberOfImages { get; }
+        
+        /// <summary>
         /// 获取帖子的点赞数量。
         /// </summary>
         [JsonProperty("numberOfVotes")]

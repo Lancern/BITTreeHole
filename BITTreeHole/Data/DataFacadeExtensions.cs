@@ -113,7 +113,8 @@ namespace BITTreeHole.Data
         /// <param name="postId">帖子 ID。</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"><paramref name="dataFacade"/>为null</exception>
-        public static async Task<(PostEntity IndexEntity, PostContentEntity ContentEntity)?>
+        /// <exception cref="PostNotFoundException">指定的帖子未找到</exception>
+        public static async Task<(PostEntity IndexEntity, PostContentEntity ContentEntity)>
             FindPost(this IDataFacade dataFacade, int postId)
         {
             if (dataFacade == null)
@@ -125,7 +126,7 @@ namespace BITTreeHole.Data
             if (indexEntity == null)
             {
                 // 没有在数据源中找到指定的帖子 ID
-                return null;
+                throw new PostNotFoundException();
             }
 
             var contentId = new ObjectId(indexEntity.ContentId);

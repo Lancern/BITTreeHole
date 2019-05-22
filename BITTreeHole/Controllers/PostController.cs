@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using BITTreeHole.Data;
+using BITTreeHole.Data.Entities;
 using BITTreeHole.Extensions;
 using BITTreeHole.Filters;
 using BITTreeHole.Models;
@@ -60,13 +61,38 @@ namespace BITTreeHole.Controllers
                 aggregatedEntities.Select(ep => new PostListItem(ep.IndexEntity, ep.ContentEntity)));
         }
 
+        // GET: /posts/{id}
+        [HttpGet("{id}")]
+        [RequireJwt]
+        public async Task<ActionResult<PostInfo>> GetPost(int id)
+        {
+            PostEntity indexEntity;
+            PostContentEntity contentEntity;
+            try
+            {
+                (indexEntity, contentEntity) = await _dataFacade.FindPost(id);
+            }
+            catch (PostNotFoundException)
+            {
+                // 指定的帖子未找到
+                return NotFound();
+            }
+            catch (DataFacadeException ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+            
+            return new PostInfo(indexEntity, contentEntity);
+        }
+
         // POST: /posts
         [HttpPost]
         [RequireJwt]
-        public async Task<ActionResult<PostCreationResult>> Post([FromBody] PostInfo info)
+        public async Task<ActionResult<PostCreationResult>> Post([FromBody] PostCreationInfo creationInfo)
         {
             var authToken = Request.HttpContext.GetAuthenticationToken();
-            var (indexEntity, contentEntity) = _entityFactory.CreatePostEntities(authToken.UserId, info);
+            var (indexEntity, contentEntity) = _entityFactory.CreatePostEntities(authToken.UserId, creationInfo);
 
             try
             {
@@ -127,7 +153,7 @@ namespace BITTreeHole.Controllers
         }
 
         // POST: /posts/{id}/images/{mask}
-        [HttpPost("posts/{id}/images/{mask}")]
+        [HttpPost("{id}/images/{mask}")]
         [RequireJwt]
         public async Task<ActionResult> PostImages(int id, string mask, List<IFormFile> imageFiles)
         {
@@ -172,7 +198,7 @@ namespace BITTreeHole.Controllers
         }
 
         // DELETE: /posts/{id}/images/{mask}
-        [HttpDelete("posts/{id}/images/{mask}")]
+        [HttpDelete("{id}/images/{mask}")]
         [RequireJwt]
         public async Task<ActionResult> DeleteImages(int id, string mask)
         {
@@ -211,7 +237,7 @@ namespace BITTreeHole.Controllers
             return Ok();
         }
 
-        [HttpPut("/posts/{id}")]
+        [HttpPut("{id}")]
         [RequireJwt]
         public async Task<ActionResult> Put(int id, [FromBody] PostModificationInfo info)
         {
@@ -271,7 +297,7 @@ namespace BITTreeHole.Controllers
         }
 
         // DELETE: /posts/{id}
-        [HttpDelete("posts/{id}")]
+        [HttpDelete("{id}")]
         [RequireJwt]
         public async Task<ActionResult> Delete(int id)
         {
