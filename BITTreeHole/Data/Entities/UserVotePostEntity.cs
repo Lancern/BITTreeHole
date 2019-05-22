@@ -35,6 +35,22 @@ namespace BITTreeHole.Data.Entities
         public virtual PostEntity Post { get; set; }
 
         /// <summary>
+        /// 创建一个新的 <see cref="UserVotePostEntity"/> 对象。
+        /// </summary>
+        /// <param name="userId">用户 ID。</param>
+        /// <param name="postId">帖子 ID。</param>
+        /// <returns>创建的 <see cref="UserVotePostEntity"/> 对象。</returns>
+        public static UserVotePostEntity Create(int userId, int postId)
+        {
+            return new UserVotePostEntity
+            {
+                UserId = userId,
+                PostId = postId,
+                CreationTime = DateTime.Now
+            };
+        }
+
+        /// <summary>
         /// 配置 <see cref="UserVotePostEntity"/> 的数据库模型。
         /// </summary>
         /// <param name="builder"></param>

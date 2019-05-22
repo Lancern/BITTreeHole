@@ -143,6 +143,13 @@ namespace BITTreeHole.Data
         Task RemoveImage(ObjectId imageId);
 
         /// <summary>
+        /// 将给定的点赞实体对象添加到数据源中。
+        /// </summary>
+        /// <param name="entity">要添加的点赞实体对象。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="entity"/>为null</exception>
+        void AddVoteEntity(UserVotePostEntity entity);
+
+        /// <summary>
         /// 将所有未提交的更改提交到数据源。
         /// </summary>
         /// <exception cref="DataFacadeException"></exception>

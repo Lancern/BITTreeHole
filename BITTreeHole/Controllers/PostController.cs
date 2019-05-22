@@ -237,6 +237,52 @@ namespace BITTreeHole.Controllers
             return Ok();
         }
 
+        // POST: /posts/{id}/votes
+        [HttpPost("{id}/votes")]
+        [RequireJwt]
+        public async Task<ActionResult> PostVote(int id)
+        {
+            var authToken = HttpContext.GetAuthenticationToken();
+            if (authToken == null)
+            {
+                return Forbid();
+            }
+
+            var indexEntity = await _dataFacade.Posts
+                                               .FirstOrDefaultAsync(e => e.Id == id && e.IsRemoved == false);
+            if (indexEntity == null)
+            {
+                // 未找到指定的帖子
+                return NotFound();
+            }
+
+            var voteEntity = UserVotePostEntity.Create(authToken.UserId, id);
+            _dataFacade.AddVoteEntity(voteEntity);
+
+            try
+            {
+                await _dataFacade.CommitChanges();
+            }
+            catch (DataFacadeException)
+            {
+                // 已经存在一个点赞
+                return Ok();
+            }
+
+            indexEntity.NumberOfVotes++;
+            try
+            {
+                await _dataFacade.CommitChanges();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
+            return Ok();
+        }
+
         [HttpPut("{id}")]
         [RequireJwt]
         public async Task<ActionResult> Put(int id, [FromBody] PostModificationInfo info)

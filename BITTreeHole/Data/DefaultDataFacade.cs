@@ -236,6 +236,14 @@ namespace BITTreeHole.Data
         }
 
         /// <inheritdoc />
+        public void AddVoteEntity(UserVotePostEntity entity)
+        {
+            if (entity == null)
+                throw new ArgumentNullException(nameof(entity));
+            _mysqlDbContext.UserVotePosts.Add(entity);
+        }
+
+        /// <inheritdoc />
         public async Task CommitChanges()
         {
             await AccessDataSource(async () => await _mysqlDbContext.SaveChangesAsync());
