@@ -390,9 +390,9 @@ namespace BITTreeHole.Controllers
             }
             
             // 检查帖子是否存在
-            var postsCount = await _dataFacade.Posts
-                                              .CountAsync(e => e.Id == id && e.IsRemoved == false);
-            if (postsCount == 0)
+            var postEntity = await _dataFacade.Posts
+                                              .FirstOrDefaultAsync(e => e.Id == id && e.IsRemoved == false);
+            if (postEntity == null)
             {
                 // 帖子不存在
                 return NotFound();
@@ -421,6 +421,19 @@ namespace BITTreeHole.Controllers
             try
             {
                 await _dataFacade.AddPostComment(indexEntity, contentEntity);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+            
+            // 更新帖子实体对象
+            postEntity.UpdateTime = DateTime.Now;
+            postEntity.NumberOfComments++;
+            try
+            {
+                await _dataFacade.CommitChanges();
             }
             catch (Exception ex)
             {
@@ -469,15 +482,36 @@ namespace BITTreeHole.Controllers
                 return ability;
             }
 
+            var postEntity = await _dataFacade.Posts
+                                              .FirstOrDefaultAsync(e => e.Id == postId && e.IsRemoved == false);
+            if (postEntity == null)
+            {
+                // 帖子不存在
+                return NotFound();
+            }
+
             var indexEntity = await _dataFacade.Comments
                                                .FirstOrDefaultAsync(
                                                    e => e.CommentId == commentId && e.IsRemoved == false);
             if (indexEntity == null)
             {
+                // 评论不存在
                 return NotFound();
             }
 
             indexEntity.IsRemoved = true;
+            try
+            {
+                await _dataFacade.CommitChanges();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+            
+            // 更新帖子对象
+            postEntity.NumberOfComments--;
             try
             {
                 await _dataFacade.CommitChanges();
