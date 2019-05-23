@@ -85,6 +85,54 @@ namespace BITTreeHole.Controllers
             
             return new PostInfo(indexEntity, contentEntity);
         }
+        
+        // GET: /posts/{id}/comments
+        [HttpGet("{id}/comments")]
+        [RequireJwt]
+        public async Task<ActionResult<List<PostCommentInfo>>> GetPostComments(int id)
+        {
+            List<(CommentEntity IndexEntity, CommentContentEntity ContentEntity)> comments;
+            try
+            {
+                comments = await _dataFacade.FindPostComments(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+            
+            // 逆扁平化
+            var rootComments = new List<PostCommentInfo>();
+            var rootCommentIdDict = new Dictionary<int, int>();
+            foreach (var (indexEntity, contentEntity) in comments)
+            {
+                if (indexEntity.PostId == null)
+                {
+                    continue;
+                }
+                
+                rootComments.Add(new PostCommentInfo(indexEntity, contentEntity));
+                rootCommentIdDict.Add(indexEntity.Id, rootComments.Count - 1);
+            }
+
+            foreach (var (indexEntity, contentEntity) in comments)
+            {
+                if (indexEntity.CommentId == null)
+                {
+                    continue;
+                }
+
+                if (!rootCommentIdDict.TryGetValue(indexEntity.CommentId.Value, out var rootOffset))
+                {
+                    continue;
+                }
+                
+                rootComments[rootOffset].Comments.Add(new PostCommentInfo(indexEntity, contentEntity));
+            }
+            
+            return rootComments;
+        }
 
         // POST: /posts
         [HttpPost]

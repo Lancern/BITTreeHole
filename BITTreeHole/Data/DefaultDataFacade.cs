@@ -252,6 +252,29 @@ namespace BITTreeHole.Data
         }
 
         /// <inheritdoc />
+        public async Task<List<CommentContentEntity>> FindCommentContentEntities(IEnumerable<ObjectId> contentEntityIds)
+        {
+            if (contentEntityIds == null)
+                throw new ArgumentNullException(nameof(contentEntityIds));
+
+            var entityIdsConcrete = contentEntityIds.ToArray();
+            var entityObjects = await AccessDataSource(
+                async () => await _mongoDbContext.CommentContents
+                                                 .Find(
+                                                     Builders<CommentContentEntity>.Filter.In(e => e.Id,
+                                                                                              entityIdsConcrete))
+                                                 .ToListAsync());
+            var entityObjectsDict = entityObjects.ToDictionary(e => e.Id);
+
+            return entityIdsConcrete.Select(id =>
+            {
+                if (!entityObjectsDict.TryGetValue(id, out var entity))
+                    return null;
+                return entity;
+            }).ToList();
+        }
+
+        /// <inheritdoc />
         public async Task CommitChanges()
         {
             await AccessDataSource(async () => await _mysqlDbContext.SaveChangesAsync());

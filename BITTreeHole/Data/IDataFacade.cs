@@ -157,6 +157,15 @@ namespace BITTreeHole.Data
         void RemoveVoteEntity(UserVotePostEntity entity);
 
         /// <summary>
+        /// 查找评论内容实体对象。
+        /// </summary>
+        /// <param name="contentEntityIds">要查找的评论内容实体对象 ID 列表。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"><paramref name="contentEntityIds"/>为null</exception>
+        /// <exception cref="DataFacadeException">数据源抛出了未经处理的异常</exception>
+        Task<List<CommentContentEntity>> FindCommentContentEntities(IEnumerable<ObjectId> contentEntityIds);
+
+        /// <summary>
         /// 将所有未提交的更改提交到数据源。
         /// </summary>
         /// <exception cref="DataFacadeException"></exception>

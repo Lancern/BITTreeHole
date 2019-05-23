@@ -375,5 +375,52 @@ namespace BITTreeHole.Data
             indexEntity.IsRemoved = true;
             await dataFacade.CommitChanges();
         }
+
+        /// <summary>
+        /// 获取帖子的评论列表。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="postId">帖子 ID</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"><paramref name="dataFacade"/>为null</exception>
+        public static async Task<List<(CommentEntity IndexEntity, CommentContentEntity ContentEntity)>>
+            FindPostComments(this IDataFacade dataFacade, int postId)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+
+            // 获取所有一级评论
+            var indexEntitiesLv1 = await dataFacade.Comments
+                                                   .Where(e => e.PostId == postId && e.IsRemoved == false)
+                                                   .ToListAsync();
+            var contentEntitiesLv1 = await dataFacade.FindCommentContentEntities(
+                indexEntitiesLv1.Select(e => new ObjectId(e.ContentId)));
+
+            var indexEntitiesLv2 = new List<CommentEntity>();
+            var contentEntitiesLv2 = new List<CommentContentEntity>();
+            foreach (var entityLv1 in indexEntitiesLv1)
+            {
+                // 获取当前枚举到的一级评论下的所有二级评论
+                var indexEntitiesLv2Current = await dataFacade.Comments
+                                                              .Where(e => e.CommentId == entityLv1.Id &&
+                                                                          e.IsRemoved == false)
+                                                              .ToListAsync();
+                var contentEntitiesLv2Current = await dataFacade.FindCommentContentEntities(
+                    indexEntitiesLv2.Select(e => new ObjectId(e.ContentId)));
+                
+                indexEntitiesLv2.AddRange(indexEntitiesLv2Current);
+                contentEntitiesLv2.AddRange(contentEntitiesLv2Current);
+            }
+
+            // 将一级评论与二级评论进行扁平化处理
+            var indexEntities = indexEntitiesLv1;
+            indexEntities.AddRange(indexEntitiesLv2);
+
+            var contentEntities = contentEntitiesLv1;
+            contentEntitiesLv1.AddRange(contentEntitiesLv2);
+
+            return indexEntities.Zip(contentEntities, (ie, ce) => (ie, ce))
+                                .ToList();
+        }
     }
 }
