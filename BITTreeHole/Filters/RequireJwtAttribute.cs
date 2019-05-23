@@ -26,7 +26,6 @@ namespace BITTreeHole.Filters
             /// 初始化 <see cref="RequireJwtImplAttribute"/> 类的新实例。
             /// </summary>
             /// <param name="jwtService">由 DI 解析的 JWT 服务实例。</param>
-            /// <param name="dataFacade">数据层外观。</param>
             /// <param name="requireAdmin">是否要求用户为管理员。</param>
             /// <exception cref="ArgumentNullException">
             ///     <paramref name="jwtService"/>为null

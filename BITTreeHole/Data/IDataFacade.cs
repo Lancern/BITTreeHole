@@ -150,6 +150,13 @@ namespace BITTreeHole.Data
         void AddVoteEntity(UserVotePostEntity entity);
 
         /// <summary>
+        /// 移除点赞实体对象。
+        /// </summary>
+        /// <param name="entity">要移除的点赞实体对象。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="entity"/>为null</exception>
+        void RemoveVoteEntity(UserVotePostEntity entity);
+
+        /// <summary>
         /// 将所有未提交的更改提交到数据源。
         /// </summary>
         /// <exception cref="DataFacadeException"></exception>
