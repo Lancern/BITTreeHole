@@ -39,9 +39,11 @@ namespace BITTreeHole.Data.Entities
         /// </summary>
         public int? CommentId { get; set; }
         
+        // TODO: 移除成员 CommentEntity.NumberOfComments
         /// <summary>
         /// 获取当前评论的子评论数量。
         /// </summary>
+        [Obsolete]
         public int NumberOfComments { get; set; }
         
         /// <summary>

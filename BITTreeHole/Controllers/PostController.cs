@@ -85,108 +85,6 @@ namespace BITTreeHole.Controllers
             
             return new PostInfo(indexEntity, contentEntity);
         }
-        
-        // GET: /posts/{id}/comments
-        [HttpGet("{id}/comments")]
-        [RequireJwt]
-        public async Task<ActionResult<List<PostCommentInfo>>> GetPostComments(int id)
-        {
-            List<(CommentEntity IndexEntity, CommentContentEntity ContentEntity)> comments;
-            try
-            {
-                comments = await _dataFacade.FindPostComments(id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
-                throw;
-            }
-            
-            // 逆扁平化
-            var rootComments = new List<PostCommentInfo>();
-            var rootCommentIdDict = new Dictionary<int, int>();
-            foreach (var (indexEntity, contentEntity) in comments)
-            {
-                if (indexEntity.PostId == null)
-                {
-                    continue;
-                }
-                
-                rootComments.Add(new PostCommentInfo(indexEntity, contentEntity));
-                rootCommentIdDict.Add(indexEntity.Id, rootComments.Count - 1);
-            }
-
-            foreach (var (indexEntity, contentEntity) in comments)
-            {
-                if (indexEntity.CommentId == null)
-                {
-                    continue;
-                }
-
-                if (!rootCommentIdDict.TryGetValue(indexEntity.CommentId.Value, out var rootOffset))
-                {
-                    continue;
-                }
-                
-                rootComments[rootOffset].Comments.Add(new PostCommentInfo(indexEntity, contentEntity));
-            }
-            
-            return rootComments;
-        }
-
-        // POST: /posts/{id}/comments
-        [HttpPost("{id}/comments")]
-        [RequireJwt]
-        public async Task<ActionResult> PostComment(int id, [FromQuery] int? parentId, 
-                                                    [FromBody] CommentCreationInfo creationInfo)
-        {
-            var authToken = HttpContext.GetAuthenticationToken();
-            if (authToken == null)
-            {
-                return Forbid();
-            }
-            
-            // 检查帖子是否存在
-            var postsCount = await _dataFacade.Posts
-                                              .CountAsync(e => e.Id == id && e.IsRemoved == false);
-            if (postsCount == 0)
-            {
-                // 帖子不存在
-                return NotFound();
-            }
-
-            CommentEntity indexEntity;
-            CommentContentEntity contentEntity = CommentContentEntity.Create(creationInfo.Text);
-            if (parentId == null)
-            {
-                indexEntity = CommentEntity.CreateLv1(authToken.UserId, contentEntity.Id.ToByteArray(), id);
-            }
-            else
-            {
-                // 检查父评论是否存在
-                var commentsCount = await _dataFacade.Comments
-                                                     .CountAsync(e => e.Id == parentId.Value && e.IsRemoved == false);
-                if (commentsCount == 0)
-                {
-                    // 父评论不存在
-                    return NotFound();
-                }
-                
-                indexEntity = CommentEntity.CreateLv2(authToken.UserId, contentEntity.Id.ToByteArray(), parentId.Value);
-            }
-
-            try
-            {
-                await _dataFacade.AddPostComment(indexEntity, contentEntity);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
-                throw;
-            }
-
-            return Ok();
-        }
 
         // POST: /posts
         [HttpPost]
@@ -219,6 +117,7 @@ namespace BITTreeHole.Controllers
         /// <returns>
         /// 若当前用户能够编辑目标帖子，返回 null；否则返回表示相应错误的响应动作包装。
         /// </returns>
+        [NonAction]
         private async Task<ActionResult> CheckUserEditionToPost(int postId)
         {
             var authToken = HttpContext.GetAuthenticationToken();
@@ -339,96 +238,6 @@ namespace BITTreeHole.Controllers
             return Ok();
         }
 
-        // POST: /posts/{id}/votes
-        [HttpPost("{id}/votes")]
-        [RequireJwt]
-        public async Task<ActionResult> PostVote(int id)
-        {
-            var authToken = HttpContext.GetAuthenticationToken();
-            if (authToken == null)
-            {
-                return Forbid();
-            }
-
-            var indexEntity = await _dataFacade.Posts
-                                               .FirstOrDefaultAsync(e => e.Id == id && e.IsRemoved == false);
-            if (indexEntity == null)
-            {
-                // 未找到指定的帖子
-                return NotFound();
-            }
-
-            var voteEntity = UserVotePostEntity.Create(authToken.UserId, id);
-            _dataFacade.AddVoteEntity(voteEntity);
-
-            try
-            {
-                await _dataFacade.CommitChanges();
-            }
-            catch (DataFacadeException)
-            {
-                // 已经存在一个点赞
-                return Ok();
-            }
-
-            indexEntity.NumberOfVotes++;
-            indexEntity.UpdateTime = DateTime.Now;
-            try
-            {
-                await _dataFacade.CommitChanges();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
-                throw;
-            }
-
-            return Ok();
-        }
-
-        // DELETE: /posts/{id}/values
-        [HttpDelete("{id}/votes")]
-        [RequireJwt]
-        public async Task<ActionResult> DeleteVote(int id)
-        {
-            var authToken = HttpContext.GetAuthenticationToken();
-            if (authToken == null)
-            {
-                return Forbid();
-            }
-
-            var indexEntity = await _dataFacade.Posts
-                                               .FirstOrDefaultAsync(e => e.Id == id && e.IsRemoved == false);
-            if (indexEntity == null)
-            {
-                // 帖子未找到
-                return NotFound();
-            }
-
-            var voteEntity = await _dataFacade.UserVotePosts
-                                              .FirstOrDefaultAsync(e => e.PostId == id && e.UserId == authToken.UserId);
-            if (voteEntity == null)
-            {
-                // 点赞不存在
-                return Ok();
-            }
-
-            --indexEntity.NumberOfVotes;
-            indexEntity.UpdateTime = DateTime.Now;
-            _dataFacade.RemoveVoteEntity(voteEntity);
-            try
-            {
-                await _dataFacade.CommitChanges();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
-                throw;
-            }
-
-            return Ok();
-        }
-
         // PUT: /posts/{id}
         [HttpPut("{id}")]
         [RequireJwt]
@@ -509,6 +318,260 @@ namespace BITTreeHole.Controllers
             {
                 // 指定的帖子未找到
                 return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
+            return Ok();
+        }
+        
+        
+        // GET: /posts/{id}/comments
+        [HttpGet("{id}/comments")]
+        [RequireJwt]
+        public async Task<ActionResult<List<PostCommentInfo>>> GetPostComments(int id)
+        {
+            List<(CommentEntity IndexEntity, CommentContentEntity ContentEntity)> comments;
+            try
+            {
+                comments = await _dataFacade.FindPostComments(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+            
+            // 逆扁平化
+            var rootComments = new List<PostCommentInfo>();
+            var rootCommentIdDict = new Dictionary<int, int>();
+            foreach (var (indexEntity, contentEntity) in comments)
+            {
+                if (indexEntity.PostId == null)
+                {
+                    continue;
+                }
+                
+                rootComments.Add(new PostCommentInfo(indexEntity, contentEntity));
+                rootCommentIdDict.Add(indexEntity.Id, rootComments.Count - 1);
+            }
+
+            foreach (var (indexEntity, contentEntity) in comments)
+            {
+                if (indexEntity.CommentId == null)
+                {
+                    continue;
+                }
+
+                if (!rootCommentIdDict.TryGetValue(indexEntity.CommentId.Value, out var rootOffset))
+                {
+                    continue;
+                }
+                
+                rootComments[rootOffset].Comments.Add(new PostCommentInfo(indexEntity, contentEntity));
+            }
+            
+            return rootComments;
+        }
+
+        // POST: /posts/{id}/comments
+        [HttpPost("{id}/comments")]
+        [RequireJwt]
+        public async Task<ActionResult> PostComment(int id, [FromQuery] int? parentId, 
+                                                    [FromBody] CommentCreationInfo creationInfo)
+        {
+            var authToken = HttpContext.GetAuthenticationToken();
+            if (authToken == null)
+            {
+                return Forbid();
+            }
+            
+            // 检查帖子是否存在
+            var postsCount = await _dataFacade.Posts
+                                              .CountAsync(e => e.Id == id && e.IsRemoved == false);
+            if (postsCount == 0)
+            {
+                // 帖子不存在
+                return NotFound();
+            }
+
+            CommentEntity indexEntity;
+            CommentContentEntity contentEntity = CommentContentEntity.Create(creationInfo.Text);
+            if (parentId == null)
+            {
+                indexEntity = CommentEntity.CreateLv1(authToken.UserId, contentEntity.Id.ToByteArray(), id);
+            }
+            else
+            {
+                // 检查父评论是否存在
+                var commentsCount = await _dataFacade.Comments
+                                                     .CountAsync(e => e.Id == parentId.Value && e.IsRemoved == false);
+                if (commentsCount == 0)
+                {
+                    // 父评论不存在
+                    return NotFound();
+                }
+                
+                indexEntity = CommentEntity.CreateLv2(authToken.UserId, contentEntity.Id.ToByteArray(), parentId.Value);
+            }
+
+            try
+            {
+                await _dataFacade.AddPostComment(indexEntity, contentEntity);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
+            return Ok();
+        }
+
+        [NonAction]
+        private async Task<ActionResult> CheckUserEditionToComment(int commentId)
+        {
+            var authToken = HttpContext.GetAuthenticationToken();
+            if (authToken.IsAdmin)
+            {
+                return null;
+            }
+
+            var indexEntity = await _dataFacade.Comments
+                                               .Include(e => e.AuthorId)
+                                               .FirstOrDefaultAsync(e => e.Id == commentId && e.IsRemoved == false);
+            if (indexEntity == null)
+            {
+                // 帖子实体对象不存在
+                return NotFound();
+            }
+
+            if (authToken.UserId != indexEntity.AuthorId)
+            {
+                // 非管理员用户尝试修改评论
+                return Forbid();
+            }
+
+            return null;
+        }
+
+        [HttpDelete("{postId}/comments/{commentId}")]
+        [RequireJwt]
+        public async Task<ActionResult> DeleteComment(int postId, int commentId)
+        {
+            // 检查用户是否有权对帖子进行修改
+            var ability = await CheckUserEditionToComment(commentId);
+            if (ability != null)
+            {
+                return ability;
+            }
+
+            var indexEntity = await _dataFacade.Comments
+                                               .FirstOrDefaultAsync(
+                                                   e => e.CommentId == commentId && e.IsRemoved == false);
+            if (indexEntity == null)
+            {
+                return NotFound();
+            }
+
+            indexEntity.IsRemoved = true;
+            try
+            {
+                await _dataFacade.CommitChanges();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
+            return Ok();
+        }
+        
+
+        // POST: /posts/{id}/votes
+        [HttpPost("{id}/votes")]
+        [RequireJwt]
+        public async Task<ActionResult> PostVote(int id)
+        {
+            var authToken = HttpContext.GetAuthenticationToken();
+            if (authToken == null)
+            {
+                return Forbid();
+            }
+
+            var indexEntity = await _dataFacade.Posts
+                                               .FirstOrDefaultAsync(e => e.Id == id && e.IsRemoved == false);
+            if (indexEntity == null)
+            {
+                // 未找到指定的帖子
+                return NotFound();
+            }
+
+            var voteEntity = UserVotePostEntity.Create(authToken.UserId, id);
+            _dataFacade.AddVoteEntity(voteEntity);
+
+            try
+            {
+                await _dataFacade.CommitChanges();
+            }
+            catch (DataFacadeException)
+            {
+                // 已经存在一个点赞
+                return Ok();
+            }
+
+            indexEntity.NumberOfVotes++;
+            indexEntity.UpdateTime = DateTime.Now;
+            try
+            {
+                await _dataFacade.CommitChanges();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
+            return Ok();
+        }
+
+        // DELETE: /posts/{id}/values
+        [HttpDelete("{id}/votes")]
+        [RequireJwt]
+        public async Task<ActionResult> DeleteVote(int id)
+        {
+            var authToken = HttpContext.GetAuthenticationToken();
+            if (authToken == null)
+            {
+                return Forbid();
+            }
+
+            var indexEntity = await _dataFacade.Posts
+                                               .FirstOrDefaultAsync(e => e.Id == id && e.IsRemoved == false);
+            if (indexEntity == null)
+            {
+                // 帖子未找到
+                return NotFound();
+            }
+
+            var voteEntity = await _dataFacade.UserVotePosts
+                                              .FirstOrDefaultAsync(e => e.PostId == id && e.UserId == authToken.UserId);
+            if (voteEntity == null)
+            {
+                // 点赞不存在
+                return Ok();
+            }
+
+            --indexEntity.NumberOfVotes;
+            indexEntity.UpdateTime = DateTime.Now;
+            _dataFacade.RemoveVoteEntity(voteEntity);
+            try
+            {
+                await _dataFacade.CommitChanges();
             }
             catch (Exception ex)
             {
