@@ -134,6 +134,60 @@ namespace BITTreeHole.Controllers
             return rootComments;
         }
 
+        // POST: /posts/{id}/comments
+        [HttpPost("{id}/comments")]
+        [RequireJwt]
+        public async Task<ActionResult> PostComment(int id, [FromQuery] int? parentId, 
+                                                    [FromBody] CommentCreationInfo creationInfo)
+        {
+            var authToken = HttpContext.GetAuthenticationToken();
+            if (authToken == null)
+            {
+                return Forbid();
+            }
+            
+            // 检查帖子是否存在
+            var postsCount = await _dataFacade.Posts
+                                              .CountAsync(e => e.Id == id && e.IsRemoved == false);
+            if (postsCount == 0)
+            {
+                // 帖子不存在
+                return NotFound();
+            }
+
+            CommentEntity indexEntity;
+            CommentContentEntity contentEntity = CommentContentEntity.Create(creationInfo.Text);
+            if (parentId == null)
+            {
+                indexEntity = CommentEntity.CreateLv1(authToken.UserId, contentEntity.Id.ToByteArray(), id);
+            }
+            else
+            {
+                // 检查父评论是否存在
+                var commentsCount = await _dataFacade.Comments
+                                                     .CountAsync(e => e.Id == parentId.Value && e.IsRemoved == false);
+                if (commentsCount == 0)
+                {
+                    // 父评论不存在
+                    return NotFound();
+                }
+                
+                indexEntity = CommentEntity.CreateLv2(authToken.UserId, contentEntity.Id.ToByteArray(), parentId.Value);
+            }
+
+            try
+            {
+                await _dataFacade.AddPostComment(indexEntity, contentEntity);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
+            return Ok();
+        }
+
         // POST: /posts
         [HttpPost]
         [RequireJwt]

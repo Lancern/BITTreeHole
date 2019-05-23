@@ -55,6 +55,52 @@ namespace BITTreeHole.Data.Entities
         public virtual UserEntity Author { get; set; }
 
         /// <summary>
+        /// 创建一级评论的索引实体对象。
+        /// </summary>
+        /// <param name="authorId">评论作者 ID。</param>
+        /// <param name="contentId">评论内容实体对象 ID。</param>
+        /// <param name="postId">帖子 ID</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="contentId"/>为null
+        /// </exception>
+        public static CommentEntity CreateLv1(int authorId, byte[] contentId, int postId)
+        {
+            if (contentId == null)
+                throw new ArgumentNullException(nameof(contentId));
+
+            return new CommentEntity
+            {
+                AuthorId = authorId,
+                ContentId = contentId,
+                PostId = postId
+            };
+        }
+
+        /// <summary>
+        /// 创建二级评论的索引实体对象。
+        /// </summary>
+        /// <param name="authorId">评论作者 ID</param>
+        /// <param name="contentId">评论内容实体对象 ID</param>
+        /// <param name="parentId">父评论 ID</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="contentId"/>为null
+        /// </exception>
+        public static CommentEntity CreateLv2(int authorId, byte[] contentId, int parentId)
+        {
+            if (contentId == null)
+                throw new ArgumentNullException(nameof(contentId));
+
+            return new CommentEntity
+            {
+                AuthorId = authorId,
+                ContentId = contentId,
+                CommentId = parentId
+            };
+        }
+
+        /// <summary>
         /// 配置 <see cref="CommentEntity"/> 的数据库模型。
         /// </summary>
         /// <param name="builder"></param>

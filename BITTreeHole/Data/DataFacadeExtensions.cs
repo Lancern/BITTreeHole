@@ -377,6 +377,32 @@ namespace BITTreeHole.Data
         }
 
         /// <summary>
+        /// 向数据源添加评论索引实体对象及其对应的内容实体对象。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="indexEntity">要添加的索引实体对象。</param>
+        /// <param name="contentEntity">要添加的内容实体对象。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        ///     <paramref name="indexEntity"/>为null
+        ///     或
+        ///     <paramref name="contentEntity"/>为null
+        /// </exception>
+        public static async Task AddPostComment(this IDataFacade dataFacade,
+                                                CommentEntity indexEntity, CommentContentEntity contentEntity)
+        {
+            if (indexEntity == null)
+                throw new ArgumentNullException(nameof(indexEntity));
+            if (contentEntity == null)
+                throw new ArgumentNullException(nameof(contentEntity));
+
+            dataFacade.AddCommentIndexEntity(indexEntity);
+            await dataFacade.CommitChanges();
+
+            await dataFacade.AddCommentContentEntity(contentEntity);
+        }
+
+        /// <summary>
         /// 获取帖子的评论列表。
         /// </summary>
         /// <param name="dataFacade"></param>

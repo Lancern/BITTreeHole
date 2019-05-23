@@ -252,6 +252,23 @@ namespace BITTreeHole.Data
         }
 
         /// <inheritdoc />
+        public void AddCommentIndexEntity(CommentEntity indexEntity)
+        {
+            if (indexEntity == null)
+                throw new ArgumentNullException(nameof(indexEntity));
+            _mysqlDbContext.Comments.Add(indexEntity);
+        }
+
+        /// <inheritdoc />
+        public async Task AddCommentContentEntity(CommentContentEntity contentEntity)
+        {
+            if (contentEntity == null)
+                throw new ArgumentNullException(nameof(contentEntity));
+
+            await AccessDataSource(async () => await _mongoDbContext.CommentContents.InsertOneAsync(contentEntity));
+        }
+
+        /// <inheritdoc />
         public async Task<List<CommentContentEntity>> FindCommentContentEntities(IEnumerable<ObjectId> contentEntityIds)
         {
             if (contentEntityIds == null)

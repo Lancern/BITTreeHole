@@ -157,6 +157,22 @@ namespace BITTreeHole.Data
         void RemoveVoteEntity(UserVotePostEntity entity);
 
         /// <summary>
+        /// 添加评论索引实体对象。
+        /// </summary>
+        /// <param name="indexEntity">要添加的评论索引实体对象。</param>
+        /// <exception cref="ArgumentNullException"><paramref name="indexEntity"/>为null</exception>
+        void AddCommentIndexEntity(CommentEntity indexEntity);
+
+        /// <summary>
+        /// 添加评论内容实体对象。
+        /// </summary>
+        /// <param name="contentEntity">内容实体对象。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"><paramref name="contentEntity"/>为null</exception>
+        /// <exception cref="DataFacadeException">数据源抛出了未经处理的异常</exception>
+        Task AddCommentContentEntity(CommentContentEntity contentEntity);
+
+        /// <summary>
         /// 查找评论内容实体对象。
         /// </summary>
         /// <param name="contentEntityIds">要查找的评论内容实体对象 ID 列表。</param>
