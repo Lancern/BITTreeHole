@@ -270,6 +270,7 @@ namespace BITTreeHole.Controllers
             }
 
             indexEntity.NumberOfVotes++;
+            indexEntity.UpdateTime = DateTime.Now;
             try
             {
                 await _dataFacade.CommitChanges();
@@ -310,10 +311,11 @@ namespace BITTreeHole.Controllers
                 return Ok();
             }
 
+            --indexEntity.NumberOfVotes;
+            indexEntity.UpdateTime = DateTime.Now;
+            _dataFacade.RemoveVoteEntity(voteEntity);
             try
             {
-                --indexEntity.NumberOfVotes;
-                _dataFacade.RemoveVoteEntity(voteEntity);
                 await _dataFacade.CommitChanges();
             }
             catch (Exception ex)
