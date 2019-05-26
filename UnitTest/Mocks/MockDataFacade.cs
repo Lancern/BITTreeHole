@@ -7,6 +7,8 @@ using BITTreeHole.Data;
 using BITTreeHole.Data.Entities;
 using MongoDB.Bson;
 
+#pragma warning disable 1998
+
 namespace BITTreeHole.Test.UnitTest.Mocks
 {
     public sealed class MockDataFacade : IDataFacade

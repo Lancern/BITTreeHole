@@ -10,7 +10,7 @@ namespace BITTreeHole.Services.Implementations
     internal sealed class MockWechatApiService : IWechatApiService
     {
         private static readonly string[] MockOpenIds = {
-            "Mock1", "Mock2", "Mock3", "Mock4", "Mock5", "Mock6", "Mock7", "Mock8", "Mock9", "Mock10"
+            "Mock1"
         };
 
         private const string MockAccessToken = "MOCK_ACCESS_TOKEN";

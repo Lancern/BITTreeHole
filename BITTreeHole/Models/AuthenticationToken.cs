@@ -15,6 +15,7 @@ namespace BITTreeHole.Models
         public AuthenticationToken()
         {
             UserId = 0;
+            IsAdmin = false;
             WechatToken = null;
         }
         
@@ -27,6 +28,7 @@ namespace BITTreeHole.Models
         public AuthenticationToken(int userId, bool isAdmin, WechatToken wechatToken)
         {
             UserId = userId;
+            IsAdmin = isAdmin;
             WechatToken = wechatToken;
         }
         
