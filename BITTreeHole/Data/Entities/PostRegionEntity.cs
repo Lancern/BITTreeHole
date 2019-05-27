@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace BITTreeHole.Data.Entities
@@ -40,12 +41,15 @@ namespace BITTreeHole.Data.Entities
                    .ValueGeneratedOnAdd();
 
             // 配置标题字段
-            builder.Property(entity => entity.Title)
-                   .HasMaxLength(4);
+            builder.Property(entity => entity.Title);
             
             // 配置标题字段上的唯一性索引
             builder.HasIndex(entity => entity.Title)
                    .IsUnique();
+            
+            // 配置图标数据的MySQL数据库类型为LONGBLOB
+            builder.Property(entity => entity.IconData)
+                   .HasColumnType("longblob");
         }
     }
 }
