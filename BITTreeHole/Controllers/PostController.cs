@@ -454,7 +454,6 @@ namespace BITTreeHole.Controllers
             }
 
             var indexEntity = await _dataFacade.Comments
-                                               .Include(e => e.AuthorId)
                                                .FirstOrDefaultAsync(e => e.Id == commentId && e.IsRemoved == false);
             if (indexEntity == null)
             {

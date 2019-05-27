@@ -72,12 +72,12 @@ namespace BITTreeHole.Controllers
 
         // GET: /regions/{id}/icon
         [HttpGet("{id}/icon")]
-        [RequireJwt]
+        // Removed JWT requirement to ensure that client can fetch image successfully.
+        // [RequireJwt]
         public async Task<ActionResult> GetIcon(int id)
         {
             var entity = await _dataFacade.PostRegions
                                           .AsNoTracking()
-                                          .Include(e => e.IconData)
                                           .FirstOrDefaultAsync(e => e.Id == id);
             if (entity == null)
                 return NotFound();

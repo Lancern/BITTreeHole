@@ -198,7 +198,6 @@ namespace BITTreeHole.Data
             var indexEntity = await dataFacade.Posts
                                               .AsNoTracking()
                                               .Where(e => e.Id == postId && e.IsRemoved == false)
-                                              .Include(e => e.AuthorId)
                                               .FirstOrDefaultAsync();
             if (indexEntity == null)
             {
@@ -234,8 +233,6 @@ namespace BITTreeHole.Data
             var indexEntity = await dataFacade.Posts
                                               // 下面的语句中务必使用 e.IsRemoved == true 以正确引导 EF Core 建立查询
                                               .Where(e => e.Id == postId && e.IsRemoved == false)
-                                              .Include(e => e.UpdateTime)
-                                              .Include(e => e.ContentId)
                                               .FirstOrDefaultAsync();
             if (indexEntity == null)
             {
@@ -308,8 +305,6 @@ namespace BITTreeHole.Data
 
             var indexEntity = await dataFacade.Posts
                                               .Where(e => e.Id == postId)
-                                              .Include(e => e.UpdateTime)
-                                              .Include(e => e.ContentId)
                                               .FirstOrDefaultAsync();
             if (indexEntity == null)
             {
@@ -365,7 +360,6 @@ namespace BITTreeHole.Data
 
             var indexEntity = await dataFacade.Posts
                                               .Where(e => e.Id == postId && e.IsRemoved == false)
-                                              .Include(e => e.IsRemoved)
                                               .FirstOrDefaultAsync();
             if (indexEntity == null)
             {
