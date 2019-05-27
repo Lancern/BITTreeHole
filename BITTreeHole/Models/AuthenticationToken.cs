@@ -41,6 +41,7 @@ namespace BITTreeHole.Models
         /// <summary>
         /// 获取用户是否拥有管理员权限。
         /// </summary>
+        [JsonProperty("isAdmin")]
         public bool IsAdmin { get; private set; }
         
         /// <summary>
