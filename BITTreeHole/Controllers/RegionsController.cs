@@ -43,12 +43,12 @@ namespace BITTreeHole.Controllers
         // POST: /regions/{name}
         [HttpPost("{name}")]
         [RequireJwt(RequireAdmin = true)]
-        public async Task<ActionResult> Post(string name, [FromBody] string imageBase64)
+        public async Task<ActionResult> Post(string name, [FromBody] RegionCreationInfo creationInfo)
         {
             var region = new PostRegionEntity { Title = name };
-            if (!string.IsNullOrEmpty(imageBase64))
+            if (!string.IsNullOrEmpty(creationInfo?.ImageBase64))
             {
-                region.IconData = Convert.FromBase64String(imageBase64);
+                region.IconData = Convert.FromBase64String(creationInfo.ImageBase64);
             }
             
             try
