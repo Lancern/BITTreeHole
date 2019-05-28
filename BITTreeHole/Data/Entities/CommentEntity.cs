@@ -74,6 +74,7 @@ namespace BITTreeHole.Data.Entities
             return new CommentEntity
             {
                 AuthorId = authorId,
+                CreationTime = DateTime.Now,
                 ContentId = contentId,
                 PostId = postId
             };
@@ -97,6 +98,7 @@ namespace BITTreeHole.Data.Entities
             return new CommentEntity
             {
                 AuthorId = authorId,
+                CreationTime = DateTime.Now,
                 ContentId = contentId,
                 CommentId = parentId
             };

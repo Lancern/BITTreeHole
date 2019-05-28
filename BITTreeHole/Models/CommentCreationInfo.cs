@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 
 namespace BITTreeHole.Models
@@ -20,6 +21,7 @@ namespace BITTreeHole.Models
         /// 获取评论正文。
         /// </summary>
         [JsonProperty("text")]
+        [Required]
         public string Text { get; private set; }
     }
 }

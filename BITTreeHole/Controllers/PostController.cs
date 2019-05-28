@@ -56,9 +56,15 @@ namespace BITTreeHole.Controllers
                 return BadRequest();
             }
 
+            var authToken = HttpContext.GetAuthenticationToken();
+
             var aggregatedEntities = await _dataFacade.FindPosts(region, page.Value, itemsPerPage.Value);
+            var voted = await _dataFacade.IsUserVotedFor(authToken.UserId,
+                                                         aggregatedEntities.Select(x => x.IndexEntity.Id));
+            
             return new ActionResult<IEnumerable<PostListItem>>(
-                aggregatedEntities.Select(ep => new PostListItem(ep.IndexEntity, ep.ContentEntity)));
+                aggregatedEntities.Zip(voted, (entities, v) => (entities.IndexEntity, entities.ContentEntity, v))
+                                  .Select(ep => new PostListItem(ep.Item1, ep.Item2, ep.Item3)));
         }
 
         // GET: /posts/{id}
@@ -82,8 +88,11 @@ namespace BITTreeHole.Controllers
                 _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
                 throw;
             }
+
+            var authToken = HttpContext.GetAuthenticationToken();
+            var voted = await _dataFacade.IsUserVotedFor(authToken.UserId, new[] { id });
             
-            return new PostInfo(indexEntity, contentEntity);
+            return new PostInfo(indexEntity, contentEntity, voted[0]);
         }
 
         // POST: /posts
@@ -399,7 +408,7 @@ namespace BITTreeHole.Controllers
             }
 
             CommentEntity indexEntity;
-            CommentContentEntity contentEntity = CommentContentEntity.Create(creationInfo.Text);
+            var contentEntity = CommentContentEntity.Create(creationInfo.Text);
             if (parentId == null)
             {
                 indexEntity = CommentEntity.CreateLv1(authToken.UserId, contentEntity.Id.ToByteArray(), id);

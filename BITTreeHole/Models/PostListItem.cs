@@ -17,7 +17,7 @@ namespace BITTreeHole.Models
         /// <exception cref="ArgumentNullException">
         ///     <paramref name="indexEntity"/>为null
         /// </exception>
-        public PostListItem(PostEntity indexEntity, PostContentEntity contentEntity = null)
+        public PostListItem(PostEntity indexEntity, PostContentEntity contentEntity, bool voted)
         {
             if (indexEntity == null)
                 throw new ArgumentNullException(nameof(indexEntity));
@@ -30,6 +30,7 @@ namespace BITTreeHole.Models
             Text = contentEntity?.Text ?? string.Empty;
             NumberOfVotes = indexEntity.NumberOfVotes;
             NumberOfComments = indexEntity.NumberOfComments;
+            IsVoted = voted;
         }
         
         /// <summary>
@@ -84,5 +85,11 @@ namespace BITTreeHole.Models
         /// </summary>
         [JsonProperty("numberOfComments")]
         public int NumberOfComments { get; }
+        
+        /// <summary>
+        /// 当前用户是否点赞了当前帖子。
+        /// </summary>
+        [JsonProperty("voted")]
+        public bool IsVoted { get; }
     }
 }

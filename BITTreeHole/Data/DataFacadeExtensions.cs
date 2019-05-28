@@ -151,7 +151,7 @@ namespace BITTreeHole.Data
         ///     或
         ///     <paramref name="itemsPerPage"/>小于等于零
         /// </exception>
-        public static async Task<IEnumerable<(PostEntity IndexEntity, PostContentEntity ContentEntity)>>
+        public static async Task<List<(PostEntity IndexEntity, PostContentEntity ContentEntity)>>
             FindPosts(this IDataFacade dataFacade, int region, int page, int itemsPerPage)
         {
             if (dataFacade == null)
@@ -177,7 +177,7 @@ namespace BITTreeHole.Data
                 if (contentDict.TryGetValue(new ObjectId(indexEntity.ContentId), out var contentEntity))
                     return (indexEntity, contentEntity);
                 return (indexEntity, null);
-            });
+            }).ToList();
         }
 
         /// <summary>
@@ -426,7 +426,7 @@ namespace BITTreeHole.Data
                                                                           e.IsRemoved == false)
                                                               .ToListAsync();
                 var contentEntitiesLv2Current = await dataFacade.FindCommentContentEntities(
-                    indexEntitiesLv2.Select(e => new ObjectId(e.ContentId)));
+                    indexEntitiesLv2Current.Select(e => new ObjectId(e.ContentId)));
                 
                 indexEntitiesLv2.AddRange(indexEntitiesLv2Current);
                 contentEntitiesLv2.AddRange(contentEntitiesLv2Current);
@@ -441,6 +441,32 @@ namespace BITTreeHole.Data
 
             return indexEntities.Zip(contentEntities, (ie, ce) => (ie, ce))
                                 .ToList();
+        }
+
+        /// <summary>
+        /// 查询给定的用户是否对给定的帖子进行了点赞。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="userId">用户 ID。</param>
+        /// <param name="postIds">帖子 ID。</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="dataFacade"/>为null
+        /// </exception>
+        public static async Task<List<bool>> IsUserVotedFor(this IDataFacade dataFacade, 
+                                                            int userId, IEnumerable<int> postIds)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+
+            var userPosts = await dataFacade.UserVotePosts
+                                            .Where(e => e.UserId == userId)
+                                            .ToListAsync();
+            var userPostedPosts = userPosts.Select(x => x.PostId)
+                                           .ToHashSet();
+
+            return postIds.Select(x => userPostedPosts.Contains(x))
+                          .ToList();
         }
     }
 }

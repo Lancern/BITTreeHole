@@ -20,7 +20,7 @@ namespace BITTreeHole.Models
         ///     或
         ///     <paramref name="contentEntity"/>为null
         /// </exception>
-        public PostInfo(PostEntity indexEntity, PostContentEntity contentEntity)
+        public PostInfo(PostEntity indexEntity, PostContentEntity contentEntity, bool isVoted)
         {
             if (indexEntity == null)
                 throw new ArgumentNullException(nameof(indexEntity));
@@ -35,54 +35,61 @@ namespace BITTreeHole.Models
             NumberOfImages = contentEntity.ImageIds.Length;
             NumberOfVotes = indexEntity.NumberOfVotes;
             NumberOfComments = indexEntity.NumberOfComments;
+            IsVoted = isVoted;
         }
         
         /// <summary>
-        /// 获取或设置帖子标题。
+        /// 获取帖子标题。
         /// </summary>
         [JsonProperty("title")]
         public string Title { get; }
         
         /// <summary>
-        /// 获取或设置帖子正文。
+        /// 获取帖子正文。
         /// </summary>
         [JsonProperty("text")]
         public string Text { get; }
         
         /// <summary>
-        /// 获取或设置帖子作者。
+        /// 获取帖子作者。
         /// </summary>
         [JsonProperty("authorId")]
         public int AuthorId { get; }
         
         /// <summary>
-        /// 获取或设置帖子创建时间。
+        /// 获取帖子创建时间。
         /// </summary>
         [JsonProperty("creationTime")]
         public DateTime CreationTime { get; }
         
         /// <summary>
-        /// 获取或设置帖子更新时间。
+        /// 获取帖子更新时间。
         /// </summary>
         [JsonProperty("updateTime")]
         public DateTime UpdateTime { get; }
         
         /// <summary>
-        /// 获取或设置帖子的图片数量。
+        /// 获取贴子的图片数量。
         /// </summary>
         [JsonProperty("numberOfImages")]
         public int NumberOfImages { get; }
         
         /// <summary>
-        /// 获取或设置点赞数量。
+        /// 获取点赞数量。
         /// </summary>
         [JsonProperty("numberOfVotes")]
         public int NumberOfVotes { get; }
         
         /// <summary>
-        /// 获取或设置评论数量。
+        /// 获取评论数量。
         /// </summary>
         [JsonProperty("numberOfComments")]
         public int NumberOfComments { get; }
+        
+        /// <summary>
+        /// 获取当前用户是否点赞了当前帖子。
+        /// </summary>
+        [JsonProperty("isVoted")]
+        public bool IsVoted { get; }
     }
 }
