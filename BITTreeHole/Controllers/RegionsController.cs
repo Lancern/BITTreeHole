@@ -45,6 +45,8 @@ namespace BITTreeHole.Controllers
         [RequireJwt(RequireAdmin = true)]
         public async Task<ActionResult> Post(string name, [FromBody] RegionCreationInfo creationInfo)
         {
+            _logger.LogInformation("Image Base64: {0}", creationInfo.ImageBase64);
+        
             var region = new PostRegionEntity { Title = name };
             if (!string.IsNullOrEmpty(creationInfo?.ImageBase64))
             {

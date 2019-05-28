@@ -135,6 +135,7 @@ namespace BITTreeHole.Data.Entities
 
             return new PostEntity
             {
+                Title = title,
                 AuthorId = authorId,
                 PostRegionId = postRegionId,
                 CreationTime = DateTime.Now,
