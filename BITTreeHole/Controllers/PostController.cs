@@ -32,6 +32,17 @@ namespace BITTreeHole.Controllers
             _entityFactory = entityFactory ?? throw new ArgumentNullException(nameof(entityFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
+
+        [NonAction]
+        private async Task<IEnumerable<PostListItem>> GetUserVotingInfo(
+            int userId,  
+            IReadOnlyCollection<(PostEntity IndexEntity, PostContentEntity ContentEntity)> aggregatedEntities)
+        {
+            var voted = await _dataFacade.IsUserVotedFor(userId, aggregatedEntities.Select(x => x.IndexEntity.Id));
+
+            return aggregatedEntities.Zip(voted, (entities, v) => (entities.IndexEntity, entities.ContentEntity, v))
+                                     .Select(ep => new PostListItem(ep.Item1, ep.Item2, ep.Item3));
+        }
         
         // GET: /posts
         [HttpGet]
@@ -58,13 +69,38 @@ namespace BITTreeHole.Controllers
 
             var authToken = HttpContext.GetAuthenticationToken();
 
-            var aggregatedEntities = await _dataFacade.FindPosts(region, page.Value, itemsPerPage.Value);
-            var voted = await _dataFacade.IsUserVotedFor(authToken.UserId,
-                                                         aggregatedEntities.Select(x => x.IndexEntity.Id));
-            
-            return new ActionResult<IEnumerable<PostListItem>>(
-                aggregatedEntities.Zip(voted, (entities, v) => (entities.IndexEntity, entities.ContentEntity, v))
-                                  .Select(ep => new PostListItem(ep.Item1, ep.Item2, ep.Item3)));
+            var aggregatedEntities = await _dataFacade.FindPosts(region, null, page.Value, itemsPerPage.Value);
+            var result = await GetUserVotingInfo(authToken.UserId, aggregatedEntities);
+            return new ActionResult<IEnumerable<PostListItem>>(result);
+        }
+        
+        // GET: /posts/mine
+        [HttpGet("mine")]
+        [RequireJwt]
+        public async Task<ActionResult<IEnumerable<PostListItem>>> GetMyPost(
+            [FromQuery] int? page, [FromQuery] int? itemsPerPage)
+        {
+            if (page == null)
+            {
+                page = 0;
+            }
+
+            if (itemsPerPage == null)
+            {
+                itemsPerPage = int.MaxValue;
+            }
+
+            if (page < 0 || itemsPerPage <= 0)
+            {
+                return BadRequest();
+            }
+
+            var authToken = HttpContext.GetAuthenticationToken();
+
+            var aggregatedEntities =
+                await _dataFacade.FindPosts(null, authToken.UserId, page.Value, itemsPerPage.Value);
+            var result = await GetUserVotingInfo(authToken.UserId, aggregatedEntities);
+            return new ActionResult<IEnumerable<PostListItem>>(result);
         }
 
         // GET: /posts/{id}
@@ -160,6 +196,33 @@ namespace BITTreeHole.Controllers
             }
 
             return null;
+        }
+        
+        // GET: /posts/{id}/images/{index}
+        [HttpGet("{id}/images/{index}")]
+        public async Task<ActionResult> GetPostImage(int id, int index)
+        {
+            Stream imageStream;
+            try
+            {
+                imageStream = await _dataFacade.OpenPostImage(id, index);
+            }
+            catch (DataFacadeException)
+            {
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                throw;
+            }
+
+            if (imageStream == null)
+            {
+                return NotFound();
+            }
+            
+            return new FileStreamResult(imageStream, "image/jpeg");
         }
 
         // POST: /posts/{id}/images/{mask}
@@ -384,6 +447,39 @@ namespace BITTreeHole.Controllers
             }
             
             return rootComments;
+        }
+
+        // GET: /posts/comments/mine
+        [HttpGet("comments/mine")]
+        [RequireJwt]
+        public async Task<ActionResult<List<UserCommentInfo>>> GetMyComments()
+        {
+            var authToken = HttpContext.GetAuthenticationToken();
+
+            var aggregatedEntities = await _dataFacade.FindUserComments(authToken.UserId);
+            var result = new List<UserCommentInfo>();
+
+            foreach (var (indexEntity, contentEntity) in aggregatedEntities)
+            {
+                int postId;
+                try
+                {
+                    postId = await _dataFacade.GetPostIdForComment(indexEntity.Id);
+                }
+                catch (CommentNotFoundException)
+                {
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "数据源抛出了未经处理的异常：{0}：{1}", ex.GetType(), ex.Message);
+                    throw;
+                }
+                
+                result.Add(new UserCommentInfo(indexEntity, contentEntity, postId));
+            }
+
+            return result;
         }
 
         // POST: /posts/{id}/comments

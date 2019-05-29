@@ -127,6 +127,14 @@ namespace BITTreeHole.Data
         Task UpdatePostContentImageIds(ObjectId postContentId, IReadOnlyDictionary<int, ObjectId?> positionValue);
 
         /// <summary>
+        /// 打开包含图像数据的数据流。
+        /// </summary>
+        /// <param name="imageId">图像 ID</param>
+        /// <returns></returns>
+        /// <exception cref="DataFacadeException">当数据源抛出了未经处理的异常时</exception>
+        Task<Stream> OpenImage(ObjectId imageId);
+
+        /// <summary>
         /// 将给定的图片数据流上传至数据源中。
         /// </summary>
         /// <param name="imageDataStream">包含图片数据的流对象。</param>

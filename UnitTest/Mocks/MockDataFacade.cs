@@ -92,6 +92,12 @@ namespace BITTreeHole.Test.UnitTest.Mocks
         }
 
         /// <inheritdoc />
+        public async Task<Stream> OpenImage(ObjectId imageId)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
         public async Task<ObjectId> UploadImage(Stream imageDataStream)
         {
             throw new System.NotImplementedException();

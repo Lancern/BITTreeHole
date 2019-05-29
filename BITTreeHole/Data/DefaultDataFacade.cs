@@ -219,6 +219,13 @@ namespace BITTreeHole.Data
         }
 
         /// <inheritdoc />
+        public async Task<Stream> OpenImage(ObjectId imageId)
+        {
+            return await AccessDataSource(
+                async () => await _mongoDbContext.ImageBucket.OpenDownloadStreamAsync(imageId));
+        }
+
+        /// <inheritdoc />
         public async Task<ObjectId> UploadImage(Stream imageDataStream)
         {
             if (imageDataStream == null)

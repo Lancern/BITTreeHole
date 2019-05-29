@@ -140,6 +140,7 @@ namespace BITTreeHole.Data
         /// </summary>
         /// <param name="dataFacade"></param>
         /// <param name="region">帖子所属板块 ID。</param>
+        /// <param name="userId">发帖用户的用户 ID。</param>
         /// <param name="page">分页参数，页面编号。页面编号从 0 开始。</param>
         /// <param name="itemsPerPage">分页参数，每一页上的帖子数量。</param>
         /// <returns>帖子信息实体对象与帖子正文实体对象二元组集合</returns>
@@ -152,7 +153,7 @@ namespace BITTreeHole.Data
         ///     <paramref name="itemsPerPage"/>小于等于零
         /// </exception>
         public static async Task<List<(PostEntity IndexEntity, PostContentEntity ContentEntity)>>
-            FindPosts(this IDataFacade dataFacade, int region, int page, int itemsPerPage)
+            FindPosts(this IDataFacade dataFacade, int? region, int? userId, int page, int itemsPerPage)
         {
             if (dataFacade == null)
                 throw new ArgumentNullException(nameof(dataFacade));
@@ -160,14 +161,25 @@ namespace BITTreeHole.Data
                 throw new ArgumentOutOfRangeException(nameof(page));
             if (itemsPerPage <= 0)
                 throw new ArgumentOutOfRangeException(nameof(itemsPerPage));
+
+            // 构造查询
+            var query = dataFacade.Posts
+                                  .AsNoTracking()
+                                  .Where(e => e.IsRemoved == false);
             
-            var indexEntities = await dataFacade.Posts
-                                                .AsNoTracking()
-                                                // 下面的语句中务必使用 e.IsRemoved == false 以正确引导 EFCore 解析查询
-                                                .Where(e => e.PostRegionId == region && e.IsRemoved == false)
-                                                .OrderByDescending(e => e.UpdateTime)
-                                                .Paginate(page, itemsPerPage)
-                                                .ToListAsync();
+            if (region != null)
+            {
+                query = query.Where(e => e.PostRegionId == region.Value);
+            }
+
+            if (userId != null)
+            {
+                query = query.Where(e => e.AuthorId == userId.Value);
+            }
+
+            var indexEntities = await query.OrderByDescending(e => e.UpdateTime)
+                                           .Paginate(page, itemsPerPage)
+                                           .ToListAsync();
             var contentEntities =
                 await dataFacade.FindPostContentEntities(indexEntities.Select(e => new ObjectId(e.ContentId)));
             var contentDict = contentEntities.ToDictionary(e => e.Id);
@@ -205,6 +217,41 @@ namespace BITTreeHole.Data
             }
 
             return indexEntity.AuthorId;
+        }
+
+        /// <summary>
+        /// 打开包含给定帖子的给定索引处的图片的数据流。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="postId">帖子 ID</param>
+        /// <param name="imageIndex">图像索引</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="dataFacade"/>为null
+        /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// <paramref name="imageIndex"/>小于0 或 大于等于9
+        /// </exception>
+        public static async Task<Stream> OpenPostImage(this IDataFacade dataFacade, int postId, int imageIndex)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+            if (imageIndex < 0 || imageIndex >= 9)
+                throw new ArgumentOutOfRangeException(nameof(imageIndex));
+            
+            var (indexEntity, contentEntity) = await FindPost(dataFacade, postId);
+            if (imageIndex >= contentEntity.ImageIds.Length)
+            {
+                return null;
+            }
+            
+            var imageId = contentEntity.ImageIds[imageIndex];
+            if (imageId == null)
+            { 
+                return null;
+            }
+
+            return await dataFacade.OpenImage(imageId.Value);
         }
 
         /// <summary>
@@ -441,6 +488,77 @@ namespace BITTreeHole.Data
 
             return indexEntities.Zip(contentEntities, (ie, ce) => (ie, ce))
                                 .ToList();
+        }
+        
+
+        /// <summary>
+        /// 获取给定用户发送的评论列表。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="userId">用户 ID</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"><paramref name="dataFacade"/>为null</exception>
+        public static async Task<List<(CommentEntity IndexEntity, CommentContentEntity ContentEntity)>>
+            FindUserComments(this IDataFacade dataFacade, int userId)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+
+            var indexEntities = await dataFacade.Comments
+                                                .Where(e => e.AuthorId == userId && e.IsRemoved == false)
+                                                .ToListAsync();
+            var contentEntities = await dataFacade.FindCommentContentEntities(
+                indexEntities.Select(e => new ObjectId(e.ContentId)));
+
+            return indexEntities.Zip(contentEntities, (ie, ce) => (ie, ce))
+                                .ToList();
+        }
+
+        /// <summary>
+        /// 获取给定帖子所属的板块 ID。
+        /// </summary>
+        /// <param name="dataFacade"></param>
+        /// <param name="commentId">帖子 ID</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="dataFacade"/>为null
+        /// </exception>
+        /// <exception cref="CommentNotFoundException">给定的帖子未找到时抛出</exception>
+        public static async Task<int> GetPostIdForComment(this IDataFacade dataFacade, int commentId)
+        {
+            if (dataFacade == null)
+                throw new ArgumentNullException(nameof(dataFacade));
+
+            var indexEntity = await dataFacade.Comments
+                                              .FirstOrDefaultAsync(e => e.Id == commentId && e.IsRemoved == false);
+            if (indexEntity == null)
+            {
+                throw new CommentNotFoundException();
+            }
+
+            if (indexEntity.PostId != null)
+            {
+                return indexEntity.PostId.Value;
+            }
+
+            if (indexEntity.CommentId == null)
+            {
+                throw new CommentNotFoundException();
+            }
+
+            var parentEntity = await dataFacade.Comments
+                                               .FirstOrDefaultAsync(e => e.Id == indexEntity.CommentId.Value);
+            if (parentEntity == null)
+            {
+                throw new CommentNotFoundException();
+            }
+
+            if (parentEntity.ContentId == null)
+            {
+                throw new CommentNotFoundException();
+            }
+
+            return parentEntity.CommentId.Value;
         }
 
         /// <summary>
