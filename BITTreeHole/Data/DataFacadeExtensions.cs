@@ -310,11 +310,13 @@ namespace BITTreeHole.Data
             var uploadTasks = new List<Task>();
             foreach (var (index, imageDataStreamFactory) in images)
             {
-                using (var imageDataStream = imageDataStreamFactory())
-                {
-                    uploadTasks.Add(dataFacade.UploadImage(imageDataStream)
-                                                 .ContinueWith((t, i) => imageIds.TryAdd((int)i, t.Result), index));
-                }
+                var imageDataStream = imageDataStreamFactory();
+                uploadTasks.Add(dataFacade.UploadImage(imageDataStream)
+                                             .ContinueWith((t, i) =>
+                                             {
+                                                 imageDataStream.Close();
+                                                 imageIds.TryAdd((int) i, t.Result);
+                                             }, index));
             }
 
             await Task.WhenAll(uploadTasks);
@@ -523,8 +525,9 @@ namespace BITTreeHole.Data
         /// <exception cref="ArgumentNullException">
         /// <paramref name="dataFacade"/>为null
         /// </exception>
-        /// <exception cref="CommentNotFoundException">给定的帖子未找到时抛出</exception>
-        public static async Task<int> GetPostIdForComment(this IDataFacade dataFacade, int commentId)
+        /// <exception cref="CommentNotFoundException">给定的评论未找到时抛出</exception>
+        /// <exception cref="PostNotFoundException">给定的评论所属的帖子未找到时抛出</exception>
+        public static async Task<PostEntity> GetPostForComment(this IDataFacade dataFacade, int commentId)
         {
             if (dataFacade == null)
                 throw new ArgumentNullException(nameof(dataFacade));
@@ -536,29 +539,43 @@ namespace BITTreeHole.Data
                 throw new CommentNotFoundException();
             }
 
+            int postId;
             if (indexEntity.PostId != null)
             {
-                return indexEntity.PostId.Value;
+                // 当前评论是一级评论
+                postId = indexEntity.PostId.Value;
             }
-
-            if (indexEntity.CommentId == null)
+            else
             {
-                throw new CommentNotFoundException();
+                // 当前评论是二级评论
+                if (indexEntity.CommentId == null)
+                {
+                    throw new CommentNotFoundException();
+                }
+
+                var parentEntity = await dataFacade.Comments
+                                                   .FirstOrDefaultAsync(e => e.Id == indexEntity.CommentId.Value);
+                if (parentEntity == null)
+                {
+                    throw new CommentNotFoundException();
+                }
+
+                if (parentEntity.PostId == null)
+                {
+                    throw new CommentNotFoundException();
+                }
+
+                postId = parentEntity.PostId.Value;
             }
 
-            var parentEntity = await dataFacade.Comments
-                                               .FirstOrDefaultAsync(e => e.Id == indexEntity.CommentId.Value);
-            if (parentEntity == null)
+            var postEntity = await dataFacade.Posts
+                                             .FirstOrDefaultAsync(e => e.Id == postId);
+            if (postEntity == null)
             {
-                throw new CommentNotFoundException();
+                throw new PostNotFoundException();
             }
 
-            if (parentEntity.ContentId == null)
-            {
-                throw new CommentNotFoundException();
-            }
-
-            return parentEntity.CommentId.Value;
+            return postEntity;
         }
 
         /// <summary>

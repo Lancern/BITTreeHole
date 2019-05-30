@@ -228,8 +228,18 @@ namespace BITTreeHole.Controllers
         // POST: /posts/{id}/images/{mask}
         [HttpPost("{id}/images/{mask}")]
         [RequireJwt]
-        public async Task<ActionResult> PostImages(int id, string mask, List<IFormFile> imageFiles)
+        public async Task<ActionResult> PostImages(int id, string mask)
         {
+            IFormFileCollection imageFiles;
+            try
+            {
+                imageFiles = Request.Form.Files;
+            }
+            catch
+            {
+                return BadRequest();
+            }
+            
             Dictionary<int, IFormFile> images;
             try
             {
@@ -245,7 +255,7 @@ namespace BITTreeHole.Controllers
             {
                 return ability;
             }
-            
+        
             var imageDataStreamFactories = new Dictionary<int, Func<Stream>>();
             foreach (var (index, file) in images)
             {
@@ -461,12 +471,16 @@ namespace BITTreeHole.Controllers
 
             foreach (var (indexEntity, contentEntity) in aggregatedEntities)
             {
-                int postId;
+                PostEntity postEntity;
                 try
                 {
-                    postId = await _dataFacade.GetPostIdForComment(indexEntity.Id);
+                    postEntity = await _dataFacade.GetPostForComment(indexEntity.Id);
                 }
                 catch (CommentNotFoundException)
+                {
+                    continue;
+                }
+                catch (PostNotFoundException)
                 {
                     continue;
                 }
@@ -476,7 +490,7 @@ namespace BITTreeHole.Controllers
                     throw;
                 }
                 
-                result.Add(new UserCommentInfo(indexEntity, contentEntity, postId));
+                result.Add(new UserCommentInfo(indexEntity, contentEntity, postEntity));
             }
 
             return result;

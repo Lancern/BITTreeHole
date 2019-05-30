@@ -19,17 +19,22 @@ namespace BITTreeHole.Models
         ///     <paramref name="indexEntity"/>为null
         ///     或
         ///     <paramref name="contentEntity"/>为null
+        ///     或
+        ///     <paramref name="postEntity"/>为null
         /// </exception>
-        public UserCommentInfo(CommentEntity indexEntity, CommentContentEntity contentEntity, int postId)
+        public UserCommentInfo(CommentEntity indexEntity, CommentContentEntity contentEntity, PostEntity postEntity)
         {
             if (indexEntity == null)
                 throw new ArgumentNullException(nameof(indexEntity));
             if (contentEntity == null)
                 throw new ArgumentNullException(nameof(contentEntity));
+            if (postEntity == null)
+                throw new ArgumentNullException(nameof(postEntity));
             
             Id = indexEntity.Id;
             AuthorId = indexEntity.AuthorId;
-            PostId = postId;
+            PostId = postEntity.Id;
+            PostTitle = postEntity.Title;
             CreationTime = indexEntity.CreationTime;
             Text = contentEntity.Text;
         }
@@ -51,6 +56,12 @@ namespace BITTreeHole.Models
         /// </summary>
         [JsonProperty("postId")]
         public int PostId { get; }
+        
+        /// <summary>
+        /// 获取帖子标题。
+        /// </summary>
+        [JsonProperty("postTitle")]
+        public string PostTitle { get; }
         
         /// <summary>
         /// 获取评论创建时间。
