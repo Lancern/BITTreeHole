@@ -28,6 +28,7 @@ namespace BITTreeHole.Models
             CreationTime = indexEntity.CreationTime;
             UpdateTime = indexEntity.UpdateTime;
             Text = contentEntity?.Text ?? string.Empty;
+            NumberOfImages = contentEntity?.ImageIds.Length ?? 0;
             NumberOfVotes = indexEntity.NumberOfVotes;
             NumberOfComments = indexEntity.NumberOfComments;
             IsVoted = voted;
