@@ -26,6 +26,12 @@ namespace BITTreeHole.Models
         public int UserId { get; private set; }
 
         /// <summary>
+        /// 获取用户是否为管理员。
+        /// </summary>
+        [JsonProperty("admin")]
+        public bool IsAdmin { get; private set; }
+
+        /// <summary>
         /// 获取用户身份标识JWT。
         /// </summary>
         [JsonProperty("jwt")]
@@ -35,16 +41,18 @@ namespace BITTreeHole.Models
         /// 创建表示身份验证成功的 <see cref="AuthenticationResult"/> 对象。
         /// </summary>
         /// <param name="userId">用户 ID</param>
+        /// <param name="isAdmin">用户是否为管理员</param>
         /// <param name="jwt">包含用户身份标识信息的 JWT。</param>
         /// <param name="message">身份验证过程中产生的消息。</param>
         /// <returns></returns>
-        public static AuthenticationResult Success(int userId, string jwt, string message = null)
+        public static AuthenticationResult Success(int userId, bool isAdmin, string jwt, string message = null)
         {
             return new AuthenticationResult
             {
                 IsSuccessful = true,
                 Message = message,
                 UserId = userId,
+                IsAdmin = isAdmin,
                 Jwt = jwt
             };
         }

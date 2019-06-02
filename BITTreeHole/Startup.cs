@@ -33,31 +33,33 @@ namespace BITTreeHole
         private void ConfigureApplicationServices(IServiceCollection services)
         {
             // 加载微信 API 相关配置
-            var wechatAppId = Configuration.GetSection("Wechat")
-                                           .GetValue<string>("AppId", null);
-            var wechatAppSecret = Configuration.GetSection("Wechat")
-                                               .GetValue<string>("AppSecret", null);
-            if (string.IsNullOrEmpty(wechatAppId) || string.IsNullOrEmpty(wechatAppSecret))
-            {
-                if (HostingEnvironment.IsDevelopment())
-                {
-                    Logger.LogWarning("未配置访问微信 API 所需的 AppId 以及 AppSecret。服务将降级为基于 mock 数据的实现。");
-                    services.AddMockWechatApiService();
-                }
-                else
-                {
-                    Logger.LogCritical("未配置访问微信 API 所需的 AppId 以及 AppSecret。");
-                    throw new Exception("未配置访问微信 API 所需的 AppId 以及 AppSecret。");
-                }
-            }
-            else
-            {
-                services.AddDefaultWechatApiService(options =>
-                {
-                    options.AppId = wechatAppId;
-                    options.AppSecret = wechatAppSecret;
-                });
-            }
+//            var wechatAppId = Configuration.GetSection("Wechat")
+//                                           .GetValue<string>("AppId", null);
+//            var wechatAppSecret = Configuration.GetSection("Wechat")
+//                                               .GetValue<string>("AppSecret", null);
+//            if (string.IsNullOrEmpty(wechatAppId) || string.IsNullOrEmpty(wechatAppSecret))
+//            {
+//                if (HostingEnvironment.IsDevelopment())
+//                {
+//                    Logger.LogWarning("未配置访问微信 API 所需的 AppId 以及 AppSecret。服务将降级为基于 mock 数据的实现。");
+//                    services.AddMockWechatApiService();
+//                }
+//                else
+//                {
+//                    Logger.LogCritical("未配置访问微信 API 所需的 AppId 以及 AppSecret。");
+//                    throw new Exception("未配置访问微信 API 所需的 AppId 以及 AppSecret。");
+//                }
+//            }
+//            else
+//            {
+//                services.AddDefaultWechatApiService(options =>
+//                {
+//                    options.AppId = wechatAppId;
+//                    options.AppSecret = wechatAppSecret;
+//                });
+//            }
+
+            services.AddIdentityWechatApiService();
             
             // 加载 JWT 相关配置
             var jwtCertFileName = Configuration.GetSection("JWT")
@@ -102,6 +104,8 @@ namespace BITTreeHole
                            .AllowAnyMethod();
                 });
             });
+
+            services.AddHttpClient();
 
             ConfigureApplicationServices(services);
         }

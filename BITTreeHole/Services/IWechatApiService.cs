@@ -74,6 +74,22 @@ namespace BITTreeHole.Services
 
                 return services.AddSingleton<IWechatApiService, MockWechatApiService>();
             }
+
+            /// <summary>
+            /// 将 <see cref="IWechatApiService"/> 依赖项的基于将 Wechat Code 作为 OpenID 的实现注入到给定的依赖服务集中。
+            /// </summary>
+            /// <param name="services"></param>
+            /// <returns></returns>
+            /// <exception cref="ArgumentNullException">
+            /// <paramref name="services"/>为null
+            /// </exception>
+            public static IServiceCollection AddIdentityWechatApiService(this IServiceCollection services)
+            {
+                if (services == null)
+                    throw new ArgumentNullException(nameof(services));
+
+                return services.AddSingleton<IWechatApiService, IdentityWechatApiService>();
+            }
         }
     }
 }

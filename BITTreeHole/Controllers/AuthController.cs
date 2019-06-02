@@ -61,7 +61,7 @@ namespace BITTreeHole.Controllers
             }
             
             var token = new AuthenticationToken(userEntity.Id, userEntity.IsAdmin, wechatToken);
-            return AuthenticationResult.Success(userEntity.Id, _jwt.Encode(token));
+            return AuthenticationResult.Success(userEntity.Id, userEntity.IsAdmin, _jwt.Encode(token));
         }
     }
 }
